@@ -1,0 +1,24 @@
+# .clang-format
+
+BasedOnStyle: Microsoft
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+
+BreakBeforeBraces: Attach
+ColumnLimit: 80
+
+SpaceBeforeParens: ControlStatements
+PointerAlignment: Left
+
+AllowShortIfStatementsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortLoopsOnASingleLine: true
+
+BinPackParameters: false
+BinPackArguments: false
+
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+AllowAllConstructorInitializersOnNextLine: false
+
+BreakConstructorInitializersBeforeComma: false
