@@ -109,4 +109,9 @@ void USDI12::clearBit(volatile uint8_t* port, uint8_t bit) {
 bool USDI12::begin_uart() {
     // Calc Baud for UBRR Reg
     uint16_t ubrr = (_cpuFreq / 16 / SDI12_BAUD_RATE) - 1;
+    if (ubrr > 4095 || ubrr < 0) {
+        return false; // UBRR value out of range for 12-bit reg
+    }
+    *_ubrr = ubrr;
+    return true;
 }
