@@ -37,13 +37,18 @@
 
 class USDI12 {
   public:
+    // TX Port, TX Pin, RX Port, RX Pin, UARTn
     USDI12(volatile uint8_t* enTxPort,
            uint8_t enTxBit,
            volatile uint8_t* enRxPort,
-           uint8_t enRxBit);
+           uint8_t enRxBit,
+           uint8_t uartNum,
+           uint32_t cpuFreq);
 
+    // Setup Functions
     void set_tx(); // Set GPIOs for Transmit mode
     void set_rx(); // Set GPIOs for Receive mode
+    bool begin_uart(); // Initialize UART for SDI-12 communication
 
   private:
     // GPIO pin configuration
@@ -58,6 +63,20 @@ class USDI12 {
     void begin(); // Sets DDRx bits (called automatically once)
     void setBit(volatile uint8_t* port, uint8_t bit);
     void clearBit(volatile uint8_t* port, uint8_t bit);
+
+    // UART Register pointers
+    volatile uint8_t* _ucsra;
+    volatile uint8_t* _ucsrb;
+    volatile uint8_t* _ucsrc;
+    volatile uint16_t* _ubrr; // UBRR 12 bit reg (DS: 22.10.5)
+
+    // SDI-12 UART Config
+    static const uint16_t SDI12_BAUD_RATE = 1200;
+    static const uint8_t SDI12_DATA_BITS = 7;
+    static const uint8_t SDI12_PARITY_EVEN = 1;
+    static const uint8_t SDI12_STOP_BITS = 1;
+
+    uint32_t _cpuFreq; // Used for calculating UBRR value
 };
 
 #endif // USDI12_H
