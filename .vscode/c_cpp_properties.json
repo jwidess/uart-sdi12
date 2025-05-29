@@ -1,7 +1,7 @@
 {
     "configurations": [
         {
-            "name": "Win32",
+            "name": "AVR",
             "includePath": [
                 "${workspaceFolder}/**",
                 "C:/Program Files (x86)/Atmel/Studio/7.0/toolchain/avr8/avr8-gnu-toolchain/avr/include",
@@ -9,6 +9,10 @@
                 "C:/Program Files (x86)/Atmel/Studio/7.0/toolchain/avr8/avr8-gnu-toolchain/lib/gcc/avr/5.4.0/include-fixed",
                 "C:/Program Files (x86)/Atmel/Studio/7.0/packs/atmel/ATmega_DFP/1.7.374/include/avr"
             ],
+            "compilerPath": "C:/Program Files (x86)/Atmel/Studio/7.0/toolchain/avr8/avr8-gnu-toolchain/bin/avr-g++.exe",
+            "cStandard": "c11",
+            "cppStandard": "c++03",
+            "intelliSenseMode": "gcc-x64",
             "defines": [
                 "_DEBUG",
                 "UNICODE",
