@@ -5,6 +5,9 @@
       "label": "Build AVR project (Microchip-compatible)",
       "type": "shell",
       "command": "${workspaceFolder}/.vscode/build_avr.bat",
+      "args": [
+        "${file}"
+      ],
       "group": {
         "kind": "build",
         "isDefault": true
