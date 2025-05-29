@@ -1,0 +1,12 @@
+{
+    "version": "0.2",
+    "ignoreRegExpList": [
+        "[&*]?\\b(?:PORT|PIN|DDR)[A-Z]\\b"
+    ],
+    "ignorePaths": [],
+    "dictionaryDefinitions": [],
+    "dictionaries": [],
+    "words": [],
+    "ignoreWords": [],
+    "import": []
+}
