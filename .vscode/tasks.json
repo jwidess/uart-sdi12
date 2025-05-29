@@ -1,0 +1,15 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build AVR project (Microchip-compatible)",
+      "type": "shell",
+      "command": "${workspaceFolder}/.vscode/build_avr.bat",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    }
+  ]
+}
