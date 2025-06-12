@@ -50,8 +50,11 @@ class USDI12 {
     void set_rx(); // Set GPIOs for Receive mode
     bool begin_uart(); // Initialize UART for SDI-12 communication
 
+    // SDI-12 Functions
+    bool send_command(uint8_t address, const char* command);
+
   private:
-    // Declartions
+    // Declarations
     // GPIO pin configuration
     volatile uint8_t* _enTxPort;
     uint8_t _enTxBit;
@@ -68,13 +71,16 @@ class USDI12 {
     void begin(); // Sets DDRx bits (called automatically once)
     void setBit(volatile uint8_t* port, uint8_t bit);
     void clearBit(volatile uint8_t* port, uint8_t bit);
+    void uart_send_byte(uint8_t data);
     // End Private Functions
     
     // UART Register pointers
-    volatile uint8_t* _ucsra;
-    volatile uint8_t* _ucsrb;
-    volatile uint8_t* _ucsrc;
+    volatile uint8_t* _ucsra; // UCSRnA Control and Status Reg A (DS: 22.10.2)
+    volatile uint8_t* _ucsrb; // UCSRnB Control and Status Reg B (DS: 22.10.3)
+    volatile uint8_t* _ucsrc; // UCSRnC Control and Status Reg C (DS: 22.10.4)
     volatile uint16_t* _ubrr; // UBRR 12 bit reg (DS: 22.10.5)
+    volatile uint8_t* _udr;   // Pointer to UART data register
+    uint8_t _udre_bit;        // Bit position for UDREn (Data Register Empty)
 
     // SDI-12 UART Config
     static const uint16_t SDI12_BAUD_RATE = 1200;

@@ -52,27 +52,37 @@ USDI12::USDI12(volatile uint8_t* enTxPort,
         _ucsrb = &UCSR0B;
         _ucsrc = &UCSR0C;
         _ubrr = &UBRR0;
+        _udr = &UDR0;
+        _udre_bit = UDRE0;
         break;
     case 1:
         _ucsra = &UCSR1A;
         _ucsrb = &UCSR1B;
         _ucsrc = &UCSR1C;
         _ubrr = &UBRR1;
+        _udr = &UDR1;
+        _udre_bit = UDRE1;
         break;
     case 2:
         _ucsra = &UCSR2A;
         _ucsrb = &UCSR2B;
         _ucsrc = &UCSR2C;
         _ubrr = &UBRR2;
+        _udr = &UDR2;
+        _udre_bit = UDRE2;
         break;
     case 3:
         _ucsra = &UCSR3A;
         _ucsrb = &UCSR3B;
         _ucsrc = &UCSR3C;
         _ubrr = &UBRR3;
+        _udr = &UDR3;
+        _udre_bit = UDRE3;
         break;
     default:
         //! Will add error handling later
+        _udr = 0;
+        _udre_bit = 0;
         break;
     }
 }
@@ -113,5 +123,43 @@ bool USDI12::begin_uart() {
         return false; // UBRR value out of range for 12-bit reg
     }
     *_ubrr = ubrr;
+    return true;
+}
+
+void USDI12::uart_send_byte(uint8_t data) {
+    // Wait for the Data Register Empty flag to be set
+    // This indicates that the UART is ready to send data
+    while (!(*_ucsra & (1 << _udre_bit)));
+    *_udr = data;
+}
+
+bool USDI12::send_command(uint8_t address, const char* command) {
+    if (!_initialized || address > '9' || address < '0') {
+        return false;
+    }
+
+    // Switch to TX mode
+    set_tx();
+
+    // Send address character
+    uart_send_byte(address);
+
+    // Send command string
+    while (*command != '\0') {
+        uart_send_byte(*command++);
+    }
+
+    // Send termination character (!)
+    if (*(command - 1) != '!') {
+        uart_send_byte('!');
+    }
+
+    // Add break character
+    uart_send_byte('\r');
+    uart_send_byte('\n');
+
+    // Switch back to RX mode
+    set_rx();
+
     return true;
 }
