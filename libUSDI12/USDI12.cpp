@@ -123,6 +123,17 @@ bool USDI12::begin_uart() {
         return false; // UBRR value out of range for 12-bit reg
     }
     *_ubrr = ubrr;
+
+    // Enable receiver and transmitter
+    // RXENn = 4, TXENn = 3 in UCSRnB
+    *_ucsrb = (1 << 4) | (1 << 3);
+
+    // Set frame format: 7 data bits, even parity, 1 stop bit
+    // UCSZn1 = 2, UCSZn0 = 1 (for 7 bits: UCSZn1=1, UCSZn0=0)
+    // UPMn1 = 5, UPMn0 = 4 (for even parity: UPMn1=1, UPMn0=0)
+    // USBSn = 3 (for 1 stop bit: USBSn=0)
+    *_ucsrc = (1 << 2) | (1 << 5); // UCSZn1 | UPMn1
+
     return true;
 }
 
