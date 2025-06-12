@@ -7,22 +7,22 @@
 
 #include "config.h"
 
-#include <avr/io.h>
 #include <avr/interrupt.h>
+#include <avr/io.h>
 #include <util/delay.h>
 
 #include "USDI12.hpp"
 
 volatile uint32_t system_tick = 0;
 
-void timer5_init_100ms() {
+void timer5_init_2s() {
     // Timer5 is 16-bit, max count is 65535
     // 16,000,000 / 1024 = 15625 counts/sec
-    // 100ms = 0.1s, so 15625 * 0.1 = 1562.5 counts
-    // Use CTC mode, OCR5A = 1562
+    // 2s = 2 * 15625 = 31250 counts
+    // Use CTC mode, OCR5A = 31249 (since timer counts from 0)
     TCCR5A = 0; // Normal port operation, CTC mode
     TCCR5B = (1 << WGM52) | (1 << CS52) | (1 << CS50); // CTC, prescaler 1024
-    OCR5A = 1562;
+    OCR5A = 31249;
     TIMSK5 = (1 << OCIE5A); // Enable Output Compare A Match Interrupt
 }
 
@@ -46,7 +46,7 @@ int main(void) {
 
     sdi12.begin_uart(); // Initializes UART for SDI-12 communication
 
-    timer5_init_100ms();
+    timer5_init_2s();
     sei(); // Enable global interrupts
 
     while (1) {
