@@ -35,6 +35,20 @@
 
 #include <avr/io.h>
 
+#ifndef USDI12_BUFFER_SIZE
+/**
+ * @brief The buffer size for incoming SDI-12 data.
+ * CREDIT: Arduino SDI-12 Library
+ * All responses should be less than 81 characters:
+ * - address is a single (1) character
+ * - values has a maximum value of 75 characters
+ * - CRC is 3 characters
+ * - CR is a single character
+ * - LF is a single character
+ */
+#define USDI12_BUFFER_SIZE 81
+#endif
+
 class USDI12 {
   public:
     // TX Port, TX Pin, RX Port, RX Pin, UARTn
@@ -52,6 +66,9 @@ class USDI12 {
 
     // SDI-12 Functions
     bool send_command(uint8_t address, const char* command);
+    // Read response from SDI-12 device with timeout (ticks)
+    // Returns true if response received, false on timeout
+    bool read_response(char* buffer, uint32_t timeout_ticks, volatile uint32_t* tick_ptr);
 
   private:
     // Declarations

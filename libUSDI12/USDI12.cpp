@@ -174,3 +174,29 @@ bool USDI12::send_command(uint8_t address, const char* command) {
 
     return true;
 }
+
+bool USDI12::read_response(char* buffer,
+                           uint32_t timeout_ticks,
+                           volatile uint32_t* tick_ptr) {
+    if (!buffer || !tick_ptr) return false; // Check for null pointers
+    if (!_initialized) begin(); // Ensure DDRs are set
+    int idx = 0; // Index for buffer
+    bool got_cr = false;
+    uint32_t start_tick = *tick_ptr;
+    set_rx();
+    while (((*tick_ptr - start_tick) < timeout_ticks + 1) &&
+           (idx < USDI12_BUFFER_SIZE - 1)) {
+        // RXCn is always bit 7 in UCSRnA
+        if (*_ucsra & (1 << 7)) { // Check if data is available
+            char c = (char)(*_udr); // Read the received byte
+            buffer[idx++] = c; // Store it in the buffer
+            if (got_cr && c == '\n') { // Check for CRLF sequence
+                buffer[idx] = '\0'; // Null-terminate the string
+                return true; // Success: got CRLF
+            }
+            got_cr = (c == '\r'); // Check if we got a CR character and set flag
+        }
+    }
+    buffer[idx] = '\0';
+    return false; // Timeout or buffer full
+}
