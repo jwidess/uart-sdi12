@@ -37,7 +37,8 @@ int main(void) {
                  &SDI12_RX_PORT,
                  (1 << SDI12_RX_PIN),
                  SDI12_UART_NUM,
-                 F_CPU);
+                 F_CPU,
+                 &system_tick);
 
     sdi12.set_rx(); // Initializes DDRs and sets RX mode
     _delay_ms(100);

@@ -37,12 +37,14 @@ USDI12::USDI12(volatile uint8_t* enTxPort,
                volatile uint8_t* enRxPort,
                uint8_t enRxBit,
                uint8_t uartNum,
-               uint32_t cpuFreq)
+               uint32_t cpuFreq,
+               volatile uint32_t* tick_ptr)
     : _enTxPort(enTxPort),
       _enTxBit(enTxBit),
       _enRxPort(enRxPort),
       _enRxBit(enRxBit),
       _cpuFreq(cpuFreq),
+      _tick_ptr(tick_ptr),
       _initialized(false) {
 
     // Initialize UART registers based on uartNum
@@ -149,50 +151,42 @@ bool USDI12::send_command(uint8_t address, const char* command) {
         return false;
     }
 
-    // Switch to TX mode
     set_tx();
-
     // Send address character
     uart_send_byte(address);
-
     // Send command string
     while (*command != '\0') {
         uart_send_byte(*command++);
     }
-
-    // Send termination character (!)
+    // Send termination character (!) if not already present
     if (*(command - 1) != '!') {
         uart_send_byte('!');
     }
-
-    // Add break character
+    // Add CRLF sequence
     uart_send_byte('\r');
     uart_send_byte('\n');
-
     // Switch back to RX mode
     set_rx();
 
     return true;
 }
 
-bool USDI12::read_response(char* buffer,
-                           uint32_t timeout_ticks,
-                           volatile uint32_t* tick_ptr) {
-    if (!buffer || !tick_ptr) return false; // Check for null pointers
-    if (!_initialized) begin(); // Ensure DDRs are set
-    int idx = 0; // Index for buffer
-    bool got_cr = false;
-    uint32_t start_tick = *tick_ptr;
+bool USDI12::read_response(char* buffer, uint32_t timeout_ticks) {
     set_rx();
-    while (((*tick_ptr - start_tick) < timeout_ticks + 1) &&
+    if (!buffer || !_tick_ptr) return false; // Check for null pointers
+    if (!_initialized) begin();             // Ensure DDRs are set
+    int idx = 0;                            // Index for buffer
+    bool got_cr = false;
+    uint32_t start_tick = *_tick_ptr;
+    while (((*_tick_ptr - start_tick) < timeout_ticks + 1) &&
            (idx < USDI12_BUFFER_SIZE - 1)) {
         // RXCn is always bit 7 in UCSRnA
-        if (*_ucsra & (1 << 7)) { // Check if data is available
-            char c = (char)(*_udr); // Read the received byte
-            buffer[idx++] = c; // Store it in the buffer
+        if (*_ucsra & (1 << 7)) {      // Check if data is available
+            char c = (char)(*_udr);    // Read the received byte
+            buffer[idx++] = c;         // Store it in the buffer
             if (got_cr && c == '\n') { // Check for CRLF sequence
-                buffer[idx] = '\0'; // Null-terminate the string
-                return true; // Success: got CRLF
+                buffer[idx] = '\0';    // Null-terminate the string
+                return true;           // Success: got CRLF
             }
             got_cr = (c == '\r'); // Check if we got a CR character and set flag
         }

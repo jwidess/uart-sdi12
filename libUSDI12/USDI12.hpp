@@ -57,7 +57,8 @@ class USDI12 {
            volatile uint8_t* enRxPort,
            uint8_t enRxBit,
            uint8_t uartNum,
-           uint32_t cpuFreq);
+           uint32_t cpuFreq,
+           volatile uint32_t* tick_ptr);
 
     // Setup Functions
     void set_tx(); // Set GPIOs for Transmit mode
@@ -68,18 +69,19 @@ class USDI12 {
     bool send_command(uint8_t address, const char* command);
     // Read response from SDI-12 device with timeout (ticks)
     // Returns true if response received, false on timeout
-    bool read_response(char* buffer, uint32_t timeout_ticks, volatile uint32_t* tick_ptr);
+    bool read_response(char* buffer, uint32_t timeout_ticks);
 
   private:
     // Declarations
     // GPIO pin configuration
     volatile uint8_t* _enTxPort;
     uint8_t _enTxBit;
-
     volatile uint8_t* _enRxPort;
     uint8_t _enRxBit;
 
     uint32_t _cpuFreq; // Used for calculating UBRR value
+
+    volatile uint32_t* _tick_ptr; // Pointer to system tick counter (for timeouts)
 
     bool _initialized; // Tracks if DDRs have been set
     // End Declarations
