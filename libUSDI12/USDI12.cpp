@@ -166,6 +166,10 @@ bool USDI12::send_command(uint8_t address, const char* command) {
     uart_send_byte('\r');
     uart_send_byte('\n');
 
+    // Wait for transmission complete (TXC) before switching to RX
+    while (!(*_ucsrNa & (1 << 6)));
+    *_ucsrNa |= (1 << 6); // Clear TXC by writing 1
+
     set_rx();
 
     return true;
