@@ -187,10 +187,16 @@ bool USDI12::read_response(char* buffer, uint32_t timeout_ticks) {
         // RXCn is always bit 7 in UCSRnA
         if (*_ucsrNa & (1 << 7)) {      // Check if data is available
             char c = (char)(*_udrN);    // Read the received byte
-            buffer[idx++] = c;         // Store it in the buffer
             if (got_cr && c == '\n') { // Check for CRLF sequence
                 buffer[idx] = '\0';    // Null-terminate the string
+                // Remove CR if present at the end
+                if (idx > 0 && buffer[idx - 1] == '\r') {
+                    buffer[idx - 1] = '\0';
+                }
                 return true;           // Success: got CRLF
+            }
+            if (c != '\r') {
+                buffer[idx++] = c;     // Store it in the buffer (skip CR)
             }
             got_cr = (c == '\r'); // Check if we got a CR character and set flag
         }
