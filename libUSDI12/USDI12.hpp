@@ -94,12 +94,12 @@ class USDI12 {
     // End Private Functions
     
     // UART Register pointers
-    volatile uint8_t* _ucsra; // UCSRnA Control and Status Reg A (DS: 22.10.2)
-    volatile uint8_t* _ucsrb; // UCSRnB Control and Status Reg B (DS: 22.10.3)
-    volatile uint8_t* _ucsrc; // UCSRnC Control and Status Reg C (DS: 22.10.4)
-    volatile uint16_t* _ubrr; // UBRR 12 bit reg (DS: 22.10.5)
-    volatile uint8_t* _udr;   // Pointer to UART data register
-    uint8_t _udre_bit;        // Bit position for UDREn (Data Register Empty)
+    volatile uint8_t* _ucsrNa; // UCSRnA Control and Status Reg A (DS: 22.10.2)
+    volatile uint8_t* _ucsrNb; // UCSRnB Control and Status Reg B (DS: 22.10.3)
+    volatile uint8_t* _ucsrNc; // UCSRnC Control and Status Reg C (DS: 22.10.4)
+    volatile uint16_t* _ubrrN; // UBRRn 12 bit reg (DS: 22.10.5)
+    volatile uint8_t* _udrN;   // Pointer to UART data register
+    uint8_t _udreN_bit;        // Bit position for UDREn (Data Register Empty)
 
     // SDI-12 UART Config
     static const uint16_t SDI12_BAUD_RATE = 1200;

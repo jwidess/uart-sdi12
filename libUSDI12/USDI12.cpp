@@ -50,41 +50,41 @@ USDI12::USDI12(volatile uint8_t* enTxPort,
     // Initialize UART registers based on uartNum
     switch (uartNum) {
     case 0:
-        _ucsra = &UCSR0A;
-        _ucsrb = &UCSR0B;
-        _ucsrc = &UCSR0C;
-        _ubrr = &UBRR0;
-        _udr = &UDR0;
-        _udre_bit = UDRE0;
+        _ucsrNa = &UCSR0A;
+        _ucsrNb = &UCSR0B;
+        _ucsrNc = &UCSR0C;
+        _ubrrN = &UBRR0;
+        _udrN = &UDR0;
+        _udreN_bit = UDRE0;
         break;
     case 1:
-        _ucsra = &UCSR1A;
-        _ucsrb = &UCSR1B;
-        _ucsrc = &UCSR1C;
-        _ubrr = &UBRR1;
-        _udr = &UDR1;
-        _udre_bit = UDRE1;
+        _ucsrNa = &UCSR1A;
+        _ucsrNb = &UCSR1B;
+        _ucsrNc = &UCSR1C;
+        _ubrrN = &UBRR1;
+        _udrN = &UDR1;
+        _udreN_bit = UDRE1;
         break;
     case 2:
-        _ucsra = &UCSR2A;
-        _ucsrb = &UCSR2B;
-        _ucsrc = &UCSR2C;
-        _ubrr = &UBRR2;
-        _udr = &UDR2;
-        _udre_bit = UDRE2;
+        _ucsrNa = &UCSR2A;
+        _ucsrNb = &UCSR2B;
+        _ucsrNc = &UCSR2C;
+        _ubrrN = &UBRR2;
+        _udrN = &UDR2;
+        _udreN_bit = UDRE2;
         break;
     case 3:
-        _ucsra = &UCSR3A;
-        _ucsrb = &UCSR3B;
-        _ucsrc = &UCSR3C;
-        _ubrr = &UBRR3;
-        _udr = &UDR3;
-        _udre_bit = UDRE3;
+        _ucsrNa = &UCSR3A;
+        _ucsrNb = &UCSR3B;
+        _ucsrNc = &UCSR3C;
+        _ubrrN = &UBRR3;
+        _udrN = &UDR3;
+        _udreN_bit = UDRE3;
         break;
     default:
         //! Will add error handling later
-        _udr = 0;
-        _udre_bit = 0;
+        _udrN = 0;
+        _udreN_bit = 0;
         break;
     }
 }
@@ -124,17 +124,17 @@ bool USDI12::begin_uart() {
     if (ubrr > 4095 || ubrr < 0) {
         return false; // UBRR value out of range for 12-bit reg
     }
-    *_ubrr = ubrr;
+    *_ubrrN = ubrr;
 
     // Enable receiver and transmitter
     // RXENn = 4, TXENn = 3 in UCSRnB
-    *_ucsrb = (1 << 4) | (1 << 3);
+    *_ucsrNb = (1 << 4) | (1 << 3);
 
     // Set frame format: 7 data bits, even parity, 1 stop bit
     // UCSZn1 = 2, UCSZn0 = 1 (for 7 bits: UCSZn1=1, UCSZn0=0)
     // UPMn1 = 5, UPMn0 = 4 (for even parity: UPMn1=1, UPMn0=0)
     // USBSn = 3 (for 1 stop bit: USBSn=0)
-    *_ucsrc = (1 << 2) | (1 << 5); // UCSZn1 | UPMn1
+    *_ucsrNc = (1 << 2) | (1 << 5); // UCSZn1 | UPMn1
 
     return true;
 }
@@ -142,8 +142,8 @@ bool USDI12::begin_uart() {
 void USDI12::uart_send_byte(uint8_t data) {
     // Wait for the Data Register Empty flag to be set
     // This indicates that the UART is ready to send data
-    while (!(*_ucsra & (1 << _udre_bit)));
-    *_udr = data;
+    while (!(*_ucsrNa & (1 << _udreN_bit)));
+    *_udrN = data;
 }
 
 bool USDI12::send_command(uint8_t address, const char* command) {
@@ -165,7 +165,7 @@ bool USDI12::send_command(uint8_t address, const char* command) {
     // Add CRLF sequence
     uart_send_byte('\r');
     uart_send_byte('\n');
-    // Switch back to RX mode
+
     set_rx();
 
     return true;
@@ -181,8 +181,8 @@ bool USDI12::read_response(char* buffer, uint32_t timeout_ticks) {
     while (((*_tick_ptr - start_tick) < timeout_ticks + 1) &&
            (idx < USDI12_BUFFER_SIZE - 1)) {
         // RXCn is always bit 7 in UCSRnA
-        if (*_ucsra & (1 << 7)) {      // Check if data is available
-            char c = (char)(*_udr);    // Read the received byte
+        if (*_ucsrNa & (1 << 7)) {      // Check if data is available
+            char c = (char)(*_udrN);    // Read the received byte
             buffer[idx++] = c;         // Store it in the buffer
             if (got_cr && c == '\n') { // Check for CRLF sequence
                 buffer[idx] = '\0';    // Null-terminate the string
