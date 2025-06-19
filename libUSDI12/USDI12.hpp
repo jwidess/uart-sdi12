@@ -34,6 +34,8 @@
 #define USDI12_H
 
 #include <avr/io.h>
+#include <stdio.h>  // For snprintf, sscanf
+#include <string.h> // For strncat, strncpy
 
 #ifndef USDI12_BUFFER_SIZE
 /**
@@ -70,6 +72,16 @@ class USDI12 {
     // Read response from SDI-12 device with timeout (ticks)
     // Returns true if response received, false on timeout
     bool read_response(char* buffer, uint32_t timeout_ticks);
+
+    /**
+     * @brief Initiates a measurement and retrieves all measurement values from the SDI-12 sensor.
+     * @param address SDI-12 address (0-9)
+     * @param measurement_number Optional measurement number (0-9), default is 0 (standard M command)
+     * @param result_buffer Buffer to store the concatenated measurement values (null-terminated)
+     * @param buffer_size Size of the result_buffer
+     * @return true if all expected values were received, false otherwise
+     */
+    bool get_measurement(uint8_t address, uint8_t measurement_number, char* result_buffer, uint16_t buffer_size);
 
   private:
     // Declarations

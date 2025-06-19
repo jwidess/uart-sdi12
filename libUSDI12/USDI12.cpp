@@ -31,6 +31,8 @@
 // clang-format on
 
 #include "USDI12.hpp"
+#include <stdio.h>  // For snprintf, sscanf
+#include <string.h> // For strncat, strncpy
 
 USDI12::USDI12(volatile uint8_t* enTxPort,
                uint8_t enTxBit,
@@ -203,4 +205,75 @@ bool USDI12::read_response(char* buffer, uint32_t timeout_ticks) {
     }
     buffer[idx] = '\0';
     return false; // Timeout or buffer full
+}
+
+/**
+ * @brief Initiates a measurement and retrieves all measurement values from the SDI-12 sensor.
+ * @param address SDI-12 address (0-9)
+ * @param measurement_number Optional measurement number (0-9), default is 0 (standard M command)
+ * @param result_buffer Buffer to store the concatenated measurement values (null-terminated)
+ * @param buffer_size Size of the result_buffer
+ * @return true if all expected values were received, false otherwise
+ */
+bool USDI12::get_measurement(uint8_t address, uint8_t measurement_number, char* result_buffer, uint16_t buffer_size) {
+    if (address > '9' || address < '0' || !result_buffer || buffer_size == 0) {
+        return false;
+    }
+    char cmd[6] = {0};
+    if (measurement_number > 0) {
+        // Format: aMn!
+        snprintf(cmd, sizeof(cmd), "%cM%u!", address, measurement_number);
+    } else {
+        // Format: aM!
+        snprintf(cmd, sizeof(cmd), "%cM!", address);
+    }
+    if (!send_command(address, cmd + 1)) { // skip address, already sent
+        return false;
+    }
+    char response[USDI12_BUFFER_SIZE] = {0};
+    if (!read_response(response, 100)) { // 100 ticks for immediate response
+        return false;
+    }
+    // Response: atttn<CR><LF> (a=address, ttt=time, n=number of values)
+    // Example: 0012<CR><LF> (0=address, 01=1s, 2=2 values)
+    uint16_t wait_ticks = 0;
+    uint8_t num_values = 0;
+    // Parse response: a ttt n
+    int addr, ttt, n;
+    if (sscanf(response, "%1d%3d%1d", &addr, &ttt, &n) != 3) {
+        return false;
+    }
+    wait_ticks = ttt; // ttt is in seconds, convert to ticks if needed
+    num_values = n;
+    // Wait for service request (a<CR><LF>) or timeout
+    char service_req[USDI12_BUFFER_SIZE] = {0};
+    bool got_service = read_response(service_req, wait_ticks); // wait for ready
+    // After service request or timeout, send D0! and read values
+    char values[USDI12_BUFFER_SIZE * 2] = {0};
+    uint8_t values_received = 0;
+    for (uint8_t d = 0; values_received < num_values && d < 10; ++d) {
+        char d_cmd[6] = {0};
+        snprintf(d_cmd, sizeof(d_cmd), "%cD%u!", address, d);
+        if (!send_command(address, d_cmd + 1)) {
+            break;
+        }
+        char d_response[USDI12_BUFFER_SIZE] = {0};
+        if (!read_response(d_response, 100)) {
+            break;
+        }
+        // Skip address char, append rest to values
+        char* val_start = d_response;
+        if (*val_start == address) ++val_start;
+        strncat(values, val_start, sizeof(values) - strlen(values) - 1);
+        // Count number of values (fields separated by + or -)
+        for (char* p = val_start; *p; ++p) {
+            if (*p == '+' || *p == '-') {
+                ++values_received;
+            }
+        }
+        if (values_received >= num_values) break;
+    }
+    strncpy(result_buffer, values, buffer_size - 1);
+    result_buffer[buffer_size - 1] = '\0';
+    return (values_received >= num_values);
 }
