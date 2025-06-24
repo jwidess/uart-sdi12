@@ -233,9 +233,8 @@ USDI12Result USDI12::get_measurement(uint8_t address, char* result_buffer, uint1
         return USDI12Result_CommandError;
     }
     char response[USDI12_BUFFER_SIZE] = {0};
-    if (!read_response(response, 1, USDI12_BUFFER_SIZE)) {
-        return USDI12Result_CommandError;
-    }
+    read_response(response, 1, USDI12_BUFFER_SIZE);
+
     // Response: atttn<CR><LF> (a=address, ttt=time, n=number of values)
     // Example: 10112<CR><LF> (1=address, 011=11s, 2=2 values)
     // Parse response: a ttt n
