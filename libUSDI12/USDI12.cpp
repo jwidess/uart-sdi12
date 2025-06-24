@@ -177,33 +177,36 @@ bool USDI12::send_command(uint8_t address, const char* command) {
     return true;
 }
 
-bool USDI12::read_response(char* buffer, uint32_t timeout_ticks) {
+bool USDI12::read_response(char* buffer, uint32_t timeout_ticks, uint16_t buffer_size) {
     set_rx();
-    if (!buffer || !_tick_ptr) return false; // Check for null pointers
+    if (!buffer || !_tick_ptr || buffer_size == 0) return false; // Check for null pointers and valid size
     if (!_initialized) begin();             // Ensure DDRs are set
     int idx = 0;                            // Index for buffer
     bool got_cr = false;
     uint32_t start_tick = *_tick_ptr;
+    int max_len = buffer_size - 1;
     while (((*_tick_ptr - start_tick) < timeout_ticks + 1) &&
-           (idx < USDI12_BUFFER_SIZE - 1)) {
-        // RXCn is always bit 7 in UCSRnA
+           (idx < max_len)) {
         if (*_ucsrNa & (1 << 7)) {      // Check if data is available
             char c = (char)(*_udrN);    // Read the received byte
             if (got_cr && c == '\n') { // Check for CRLF sequence
                 buffer[idx] = '\0';    // Null-terminate the string
-                // Remove CR if present at the end
-                if (idx > 0 && buffer[idx - 1] == '\r') {
+                if (idx > 0 && buffer[idx - 1] == '\r') { // If last char is CR, remove it
                     buffer[idx - 1] = '\0';
                 }
                 return true;           // Success: got CRLF
             }
             if (c != '\r') {
-                buffer[idx++] = c;     // Store it in the buffer (skip CR)
+                if (idx < max_len) {
+                    buffer[idx] = c;     // Store it in the buffer (skip CR)
+                    idx++;
+                }
+                // If idx >= max_len, discard extra chars to avoid overrun
             }
-            got_cr = (c == '\r'); // Check if we got a CR character and set flag
+            got_cr = (c == '\r');
         }
     }
-    buffer[idx] = '\0';
+    buffer[(idx < max_len) ? idx : max_len] = '\0';
     return false; // Timeout or buffer full
 }
 
