@@ -76,12 +76,12 @@ class USDI12 {
     /**
      * @brief Initiates a measurement and retrieves all measurement values from the SDI-12 sensor.
      * @param address SDI-12 address (0-9)
-     * @param measurement_number Optional measurement number (0-9), default is 0 (standard M command)
+     * @param measurement_number Optional measurement number (0-9), default is -1 (standard M command)
      * @param result_buffer Buffer to store the concatenated measurement values (null-terminated)
      * @param buffer_size Size of the result_buffer
      * @return true if all expected values were received, false otherwise
      */
-    bool get_measurement(uint8_t address, uint8_t measurement_number, char* result_buffer, uint16_t buffer_size);
+    bool get_measurement(uint8_t address, char* result_buffer, uint16_t buffer_size, int8_t measurement_number = -1);
 
   private:
     // Declarations

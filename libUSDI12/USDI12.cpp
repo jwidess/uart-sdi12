@@ -215,36 +215,49 @@ bool USDI12::read_response(char* buffer, uint32_t timeout_ticks) {
  * @param buffer_size Size of the result_buffer
  * @return true if all expected values were received, false otherwise
  */
-bool USDI12::get_measurement(uint8_t address, uint8_t measurement_number, char* result_buffer, uint16_t buffer_size) {
-    if (address > '9' || address < '0' || !result_buffer || buffer_size == 0) {
+bool USDI12::get_measurement(uint8_t address, char* result_buffer, uint16_t buffer_size, int8_t measurement_number) {
+    if (address > '9' || address < '0' || !result_buffer || buffer_size == 0 || measurement_number > 9) {
         return false;
     }
     char cmd[6] = {0};
-    if (measurement_number > 0) {
-        // Format: aMn!
+    // Format: `aMn!` if measurement_number is specified, else `aM!`
+    if (measurement_number >= 0) {
         snprintf(cmd, sizeof(cmd), "%cM%u!", address, measurement_number);
-    } else {
-        // Format: aM!
+    } else if (measurement_number == -1) {
         snprintf(cmd, sizeof(cmd), "%cM!", address);
     }
-    if (!send_command(address, cmd + 1)) { // skip address, already sent
+    if (!send_command(address, cmd + 1)) {
         return false;
     }
     char response[USDI12_BUFFER_SIZE] = {0};
-    if (!read_response(response, 100)) { // 100 ticks for immediate response
+    if (!read_response(response, 1)) {
         return false;
     }
     // Response: atttn<CR><LF> (a=address, ttt=time, n=number of values)
     // Example: 0012<CR><LF> (0=address, 01=1s, 2=2 values)
-    uint16_t wait_ticks = 0;
-    uint8_t num_values = 0;
     // Parse response: a ttt n
-    int addr, ttt, n;
-    if (sscanf(response, "%1d%3d%1d", &addr, &ttt, &n) != 3) {
+    uint16_t ttt = 0; // Time in seconds
+    uint8_t addr, n;
+    if (sscanf(response, "%1d%3d%1d", &addr, &ttt, &n) != 3) { // Expecting 3 values
         return false;
     }
-    wait_ticks = ttt; // ttt is in seconds, convert to ticks if needed
-    num_values = n;
+    if (addr != address - '0') { // Check if address matches
+        return false;
+    }
+    uint8_t num_values = n; // Number of values expected
+
+    uint16_t wait_ticks = 0;
+    // Calculate wait_ticks based on ttt and tick interval (2 seconds per tick)
+    // E.g. ttt=0 or 1 -> 1 tick, ttt=2 -> 1 ticks, ttt=3 -> 2 ticks 
+    if (ttt == 0 || ttt == 1) {
+        wait_ticks = 1;
+    } else {
+        wait_ticks = ttt / 2;
+        if (ttt % 2 != 0) {
+            wait_ticks += 1; // Add an extra tick if there's a remainder
+        }
+    }
+    
     // Wait for service request (a<CR><LF>) or timeout
     char service_req[USDI12_BUFFER_SIZE] = {0};
     bool got_service = read_response(service_req, wait_ticks); // wait for ready
