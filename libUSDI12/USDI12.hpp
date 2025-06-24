@@ -83,7 +83,7 @@ class USDI12 {
     bool send_command(uint8_t address, const char* command);
     // Read response from SDI-12 device with timeout (ticks)
     // Returns true if response received, false on timeout
-    bool read_response(char* buffer, uint32_t timeout_ticks);
+    bool read_response(char* buffer, uint32_t timeout_ticks, uint16_t buffer_size);
 
     /**
      * @brief Initiates a measurement and retrieves all measurement values from the SDI-12 sensor.

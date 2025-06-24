@@ -233,14 +233,14 @@ USDI12Result USDI12::get_measurement(uint8_t address, char* result_buffer, uint1
         return USDI12Result_CommandError;
     }
     char response[USDI12_BUFFER_SIZE] = {0};
-    if (!read_response(response, 1)) {
+    if (!read_response(response, 1, USDI12_BUFFER_SIZE)) {
         return USDI12Result_CommandError;
     }
     // Response: atttn<CR><LF> (a=address, ttt=time, n=number of values)
-    // Example: 0012<CR><LF> (0=address, 01=1s, 2=2 values)
+    // Example: 10112<CR><LF> (1=address, 011=11s, 2=2 values)
     // Parse response: a ttt n
-    uint16_t ttt = 0; // Time in seconds
-    uint8_t addr, n;
+    int16_t ttt = 0; // Time in seconds
+    int16_t addr, n;
     if (sscanf(response, "%1d%3d%1d", &addr, &ttt, &n) != 3) { // Expecting 3 values
         return USDI12Result_InvalidResponse;
     }
@@ -262,8 +262,8 @@ USDI12Result USDI12::get_measurement(uint8_t address, char* result_buffer, uint1
     }
     
     // Wait for service request (a<CR><LF>) or timeout
-    char service_req[USDI12_BUFFER_SIZE] = {0};
-    bool got_service = read_response(service_req, wait_ticks); // wait for ready
+    char service_req[4] = {0};
+    bool got_service = read_response(service_req, wait_ticks, sizeof(service_req)); // wait for ready
     // After service request or timeout, send D0! and read values
     char values[USDI12_BUFFER_SIZE * 2] = {0};
     uint8_t values_received = 0;
@@ -274,7 +274,7 @@ USDI12Result USDI12::get_measurement(uint8_t address, char* result_buffer, uint1
             return USDI12Result_CommandError;
         }
         char d_response[USDI12_BUFFER_SIZE] = {0};
-        if (!read_response(d_response, 1)) {
+        if (!read_response(d_response, 1, USDI12_BUFFER_SIZE)) {
             return USDI12Result_CommandError;
         }
         // Skip address char, append rest to values
