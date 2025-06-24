@@ -22,3 +22,5 @@ ConstructorInitializerAllOnOneLineOrOnePerLine: true
 AllowAllConstructorInitializersOnNextLine: false
 
 BreakConstructorInitializersBeforeComma: false
+
+ReflowComments: false

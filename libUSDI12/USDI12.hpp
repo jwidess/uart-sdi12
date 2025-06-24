@@ -54,13 +54,13 @@
 // SDI-12 result codes for get_measurement (C++03 compatible)
 enum USDI12Result {
     USDI12Result_Success = 0,
-    USDI12Result_InputError,
-    USDI12Result_Timeout,
-    USDI12Result_InvalidResponse,
-    USDI12Result_CommandError,
-    USDI12Result_BufferOverflow,
-    USDI12Result_NullPointer,
-    USDI12Result_Unexpected
+    USDI12Result_InputError,      // 1
+    USDI12Result_Timeout,         // 2
+    USDI12Result_InvalidResponse, // 3
+    USDI12Result_CommandError,    // 4
+    USDI12Result_BufferOverflow,  // 5
+    USDI12Result_NullPointer,     // 6
+    USDI12Result_Unexpected       // 7
 };
 
 class USDI12 {
@@ -75,15 +75,17 @@ class USDI12 {
            volatile uint32_t* tick_ptr);
 
     // Setup Functions
-    void set_tx(); // Set GPIOs for Transmit mode
-    void set_rx(); // Set GPIOs for Receive mode
+    void set_tx();     // Set GPIOs for Transmit mode
+    void set_rx();     // Set GPIOs for Receive mode
     bool begin_uart(); // Initialize UART for SDI-12 communication
 
     // SDI-12 Functions
     bool send_command(uint8_t address, const char* command);
     // Read response from SDI-12 device with timeout (ticks)
     // Returns true if response received, false on timeout
-    bool read_response(char* buffer, uint32_t timeout_ticks, uint16_t buffer_size);
+    bool read_response(char* buffer,
+                       uint32_t timeout_ticks,
+                       uint16_t buffer_size);
 
     /**
      * @brief Initiates a measurement and retrieves all measurement values from the SDI-12 sensor.
@@ -93,7 +95,10 @@ class USDI12 {
      * @param measurement_number Optional measurement number (0-9), default is -1 (standard M command)
      * @return USDI12Result enum indicating result or error type
      */
-    USDI12Result get_measurement(uint8_t address, char* result_buffer, uint16_t buffer_size, int8_t measurement_number = -1);
+    USDI12Result get_measurement(uint8_t address,
+                                 char* result_buffer,
+                                 uint16_t buffer_size,
+                                 int8_t measurement_number = -1);
 
   private:
     // Declarations
@@ -105,18 +110,18 @@ class USDI12 {
 
     uint32_t _cpuFreq; // Used for calculating UBRR value
 
-    volatile uint32_t* _tick_ptr; // Pointer to system tick counter (for timeouts)
+    volatile uint32_t* _tick_ptr; // Ptr to system tick counter for timeouts
 
     bool _initialized; // Tracks if DDRs have been set
     // End Declarations
-    
+
     // Private Functions
     void begin(); // Sets DDRx bits (called automatically once)
     void setBit(volatile uint8_t* port, uint8_t bit);
     void clearBit(volatile uint8_t* port, uint8_t bit);
     void uart_send_byte(uint8_t data);
     // End Private Functions
-    
+
     // UART Register pointers
     volatile uint8_t* _ucsrNa; // UCSRnA Control and Status Reg A (DS: 22.10.2)
     volatile uint8_t* _ucsrNb; // UCSRnB Control and Status Reg B (DS: 22.10.3)

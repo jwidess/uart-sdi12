@@ -177,28 +177,31 @@ bool USDI12::send_command(uint8_t address, const char* command) {
     return true;
 }
 
-bool USDI12::read_response(char* buffer, uint32_t timeout_ticks, uint16_t buffer_size) {
+bool USDI12::read_response(char* buffer,
+                           uint32_t timeout_ticks,
+                           uint16_t buffer_size) {
     set_rx();
-    if (!buffer || !_tick_ptr || buffer_size == 0) return false; // Check for null pointers and valid size
-    if (!_initialized) begin();             // Ensure DDRs are set
-    int idx = 0;                            // Index for buffer
+    if (!buffer || !_tick_ptr || buffer_size == 0)
+        return false;           // Check for null pointers and valid size
+    if (!_initialized) begin(); // Ensure DDRs are set
+    int idx = 0;                // Index for buffer
     bool got_cr = false;
     uint32_t start_tick = *_tick_ptr;
     int max_len = buffer_size - 1;
-    while (((*_tick_ptr - start_tick) < timeout_ticks + 1) &&
-           (idx < max_len)) {
-        if (*_ucsrNa & (1 << 7)) {      // Check if data is available
-            char c = (char)(*_udrN);    // Read the received byte
+    while (((*_tick_ptr - start_tick) < timeout_ticks + 1) && (idx < max_len)) {
+        if (*_ucsrNa & (1 << 7)) {     // Check if data is available
+            char c = (char)(*_udrN);   // Read the received byte
             if (got_cr && c == '\n') { // Check for CRLF sequence
                 buffer[idx] = '\0';    // Null-terminate the string
-                if (idx > 0 && buffer[idx - 1] == '\r') { // If last char is CR, remove it
+                if (idx > 0 &&
+                    buffer[idx - 1] == '\r') { // If last char is CR, remove it
                     buffer[idx - 1] = '\0';
                 }
-                return true;           // Success: got CRLF
+                return true; // Success: got CRLF
             }
             if (c != '\r') {
                 if (idx < max_len) {
-                    buffer[idx] = c;     // Store it in the buffer (skip CR)
+                    buffer[idx] = c; // Store it in the buffer (skip CR)
                     idx++;
                 }
                 // If idx >= max_len, discard extra chars to avoid overrun
@@ -218,8 +221,12 @@ bool USDI12::read_response(char* buffer, uint32_t timeout_ticks, uint16_t buffer
  * @param buffer_size Size of the result_buffer
  * @return true if all expected values were received, false otherwise
  */
-USDI12Result USDI12::get_measurement(uint8_t address, char* result_buffer, uint16_t buffer_size, int8_t measurement_number) {
-    if (address > '9' || address < '0' || !result_buffer || buffer_size == 0 || measurement_number > 9) {
+USDI12Result USDI12::get_measurement(uint8_t address,
+                                     char* result_buffer,
+                                     uint16_t buffer_size,
+                                     int8_t measurement_number) {
+    if (address > '9' || address < '0' || !result_buffer || buffer_size == 0 ||
+        measurement_number > 9) {
         return USDI12Result_InputError; // Invalid address, buffer, or measurement number
     }
     char cmd[6] = {0};
@@ -240,7 +247,8 @@ USDI12Result USDI12::get_measurement(uint8_t address, char* result_buffer, uint1
     // Parse response: a ttt n
     int16_t ttt = 0; // Time in seconds
     int16_t addr, n;
-    if (sscanf(response, "%1d%3d%1d", &addr, &ttt, &n) != 3) { // Expecting 3 values
+    if (sscanf(response, "%1d%3d%1d", &addr, &ttt, &n) !=
+        3) { // Expecting 3 values
         return USDI12Result_InvalidResponse;
     }
     if (addr != address - '0') { // Check if address matches
@@ -250,7 +258,7 @@ USDI12Result USDI12::get_measurement(uint8_t address, char* result_buffer, uint1
 
     uint16_t wait_ticks = 0;
     // Calculate wait_ticks based on ttt and tick interval (2 seconds per tick)
-    // E.g. ttt=0 or 1 -> 1 tick, ttt=2 -> 1 ticks, ttt=3 -> 2 ticks 
+    // E.g. ttt=0 or 1 -> 1 tick, ttt=2 -> 1 ticks, ttt=3 -> 2 ticks
     if (ttt == 0 || ttt == 1) {
         wait_ticks = 1;
     } else {
@@ -259,10 +267,11 @@ USDI12Result USDI12::get_measurement(uint8_t address, char* result_buffer, uint1
             wait_ticks += 1; // Add an extra tick if there's a remainder
         }
     }
-    
+
     // Wait for service request (a<CR><LF>) or timeout
     char service_req[4] = {0};
-    bool got_service = read_response(service_req, wait_ticks, sizeof(service_req)); // wait for ready
+    bool got_service = read_response(
+        service_req, wait_ticks, sizeof(service_req)); // wait for ready
     // After service request or timeout, send D0! and read values
     char values[USDI12_BUFFER_SIZE * 2] = {0};
     uint8_t values_received = 0;
