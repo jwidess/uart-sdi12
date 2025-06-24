@@ -51,6 +51,18 @@
 #define USDI12_BUFFER_SIZE 81
 #endif
 
+// SDI-12 result codes for get_measurement (C++03 compatible)
+enum USDI12Result {
+    USDI12Result_Success = 0,
+    USDI12Result_InputError,
+    USDI12Result_Timeout,
+    USDI12Result_InvalidResponse,
+    USDI12Result_CommandError,
+    USDI12Result_BufferOverflow,
+    USDI12Result_NullPointer,
+    USDI12Result_Unexpected
+};
+
 class USDI12 {
   public:
     // TX Port, TX Pin, RX Port, RX Pin, UARTn
@@ -79,9 +91,9 @@ class USDI12 {
      * @param measurement_number Optional measurement number (0-9), default is -1 (standard M command)
      * @param result_buffer Buffer to store the concatenated measurement values (null-terminated)
      * @param buffer_size Size of the result_buffer
-     * @return true if all expected values were received, false otherwise
+     * @return USDI12Result enum indicating result or error type
      */
-    bool get_measurement(uint8_t address, char* result_buffer, uint16_t buffer_size, int8_t measurement_number = -1);
+    USDI12Result get_measurement(uint8_t address, char* result_buffer, uint16_t buffer_size, int8_t measurement_number = -1);
 
   private:
     // Declarations

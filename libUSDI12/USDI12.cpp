@@ -215,9 +215,9 @@ bool USDI12::read_response(char* buffer, uint32_t timeout_ticks) {
  * @param buffer_size Size of the result_buffer
  * @return true if all expected values were received, false otherwise
  */
-bool USDI12::get_measurement(uint8_t address, char* result_buffer, uint16_t buffer_size, int8_t measurement_number) {
+USDI12Result USDI12::get_measurement(uint8_t address, char* result_buffer, uint16_t buffer_size, int8_t measurement_number) {
     if (address > '9' || address < '0' || !result_buffer || buffer_size == 0 || measurement_number > 9) {
-        return false;
+        return USDI12Result_InputError; // Invalid address, buffer, or measurement number
     }
     char cmd[6] = {0};
     // Format: `aMn!` if measurement_number is specified, else `aM!`
@@ -227,11 +227,11 @@ bool USDI12::get_measurement(uint8_t address, char* result_buffer, uint16_t buff
         snprintf(cmd, sizeof(cmd), "%cM!", address);
     }
     if (!send_command(address, cmd + 1)) {
-        return false;
+        return USDI12Result_CommandError;
     }
     char response[USDI12_BUFFER_SIZE] = {0};
     if (!read_response(response, 1)) {
-        return false;
+        return USDI12Result_CommandError;
     }
     // Response: atttn<CR><LF> (a=address, ttt=time, n=number of values)
     // Example: 0012<CR><LF> (0=address, 01=1s, 2=2 values)
@@ -239,10 +239,10 @@ bool USDI12::get_measurement(uint8_t address, char* result_buffer, uint16_t buff
     uint16_t ttt = 0; // Time in seconds
     uint8_t addr, n;
     if (sscanf(response, "%1d%3d%1d", &addr, &ttt, &n) != 3) { // Expecting 3 values
-        return false;
+        return USDI12Result_InvalidResponse;
     }
     if (addr != address - '0') { // Check if address matches
-        return false;
+        return USDI12Result_InvalidResponse;
     }
     uint8_t num_values = n; // Number of values expected
 
@@ -268,11 +268,11 @@ bool USDI12::get_measurement(uint8_t address, char* result_buffer, uint16_t buff
         char d_cmd[6] = {0};
         snprintf(d_cmd, sizeof(d_cmd), "%cD%u!", address, d);
         if (!send_command(address, d_cmd + 1)) {
-            break;
+            return USDI12Result_CommandError;
         }
         char d_response[USDI12_BUFFER_SIZE] = {0};
-        if (!read_response(d_response, 100)) {
-            break;
+        if (!read_response(d_response, 1)) {
+            return USDI12Result_CommandError;
         }
         // Skip address char, append rest to values
         char* val_start = d_response;
@@ -288,5 +288,5 @@ bool USDI12::get_measurement(uint8_t address, char* result_buffer, uint16_t buff
     }
     strncpy(result_buffer, values, buffer_size - 1);
     result_buffer[buffer_size - 1] = '\0';
-    return (values_received >= num_values);
-}
+    return USDI12Result_Success;
+} // END: get_measurement
