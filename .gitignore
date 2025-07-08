@@ -1,2 +1,9 @@
 /UART-SDI12-LibraryTest-V1/UART-SDI12-LibraryTest-V1/Debug
 /build
+*.eep
+*.elf
+*.hex
+*.lss
+*.map
+*.srec
+/Microchip Studio Testing Programs/Dump_UART_Info/Dump_UART_Info/Dump_UART_Info/Debug

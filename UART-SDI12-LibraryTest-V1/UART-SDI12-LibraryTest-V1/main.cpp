@@ -79,7 +79,7 @@ int main(void) {
     DDRB |= (1 << PB7); // Set PB7 (Arduino Mega 2560 Pin 13) as output
     // --- END BLINK SETUP ---
 
-    char sdi12_buffer[USDI12_BUFFER_SIZE];
+    char sdi12_buffer[USDI12_BUFFER_SIZE] = {0};
 
     uart0_init(9600); // Set baud rate to 9600
     uart0_send_string("\r\nBoot...\r\n");
@@ -94,7 +94,7 @@ int main(void) {
 
         // Get measurement from SDI-12 device
         int8_t MeasurementResult =
-            sdi12.get_measurement('0', sdi12_buffer, USDI12_BUFFER_SIZE);
+            sdi12.get_measurement('0', sdi12_buffer, USDI12_BUFFER_SIZE, 1);
         uart0_send_string("\r\nMeasurement Result: ");
         uart0_send_char(MeasurementResult + '0'); // Convert to char for display
         uart0_send_string("\r\n");
