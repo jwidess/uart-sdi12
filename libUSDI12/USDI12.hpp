@@ -34,8 +34,8 @@
 #define USDI12_H
 
 #include <avr/io.h>
-#include <stdio.h>  // For snprintf, sscanf
-#include <string.h> // For strncat, strncpy
+#include <stdio.h>   // For snprintf, sscanf
+#include <string.h>  // For strncat, strncpy
 
 #ifndef USDI12_BUFFER_SIZE
 /**
@@ -53,88 +53,85 @@
 
 // SDI-12 result codes for get_measurement (C++03 compatible)
 enum USDI12Result {
-    USDI12Result_Success = 0,
-    USDI12Result_InputError,      // 1
-    USDI12Result_Timeout,         // 2
-    USDI12Result_InvalidResponse, // 3
-    USDI12Result_CommandError,    // 4
-    USDI12Result_BufferOverflow,  // 5
-    USDI12Result_NullPointer,     // 6
-    USDI12Result_Unexpected       // 7
+  USDI12Result_Success = 0,
+  USDI12Result_InputError,       // 1
+  USDI12Result_Timeout,          // 2
+  USDI12Result_InvalidResponse,  // 3
+  USDI12Result_CommandError,     // 4
+  USDI12Result_BufferOverflow,   // 5
+  USDI12Result_NullPointer,      // 6
+  USDI12Result_Unexpected        // 7
 };
 
 class USDI12 {
-  public:
-    // TX Port, TX Pin, RX Port, RX Pin, UARTn
-    USDI12(volatile uint8_t* enTxPort,
-           uint8_t enTxBit,
-           volatile uint8_t* enRxPort,
-           uint8_t enRxBit,
-           uint8_t uartNum,
-           uint32_t cpuFreq,
-           volatile uint32_t* tick_ptr);
+ public:
+  // TX Port, TX Pin, RX Port, RX Pin, UARTn
+  USDI12(volatile uint8_t* enTxPort, uint8_t enTxBit,
+         volatile uint8_t* enRxPort, uint8_t enRxBit, uint8_t uartNum,
+         uint32_t cpuFreq, volatile uint32_t* tick_ptr);
 
-    // Setup Functions
-    void set_tx();     // Set GPIOs for Transmit mode
-    void set_rx();     // Set GPIOs for Receive mode
-    bool begin_uart(); // Initialize UART for SDI-12 communication
+  // Setup Functions
+  void set_tx();      // Set GPIOs for Transmit mode
+  void set_rx();      // Set GPIOs for Receive mode
+  bool begin_uart();  // Initialize UART for SDI-12 communication
 
-    // SDI-12 Functions
-    bool send_command(uint8_t address, const char* command);
-    // Read response from SDI-12 device with timeout (ticks)
-    // Returns true if response received, false on timeout
-    bool read_response(char* buffer,
-                       uint32_t timeout_ticks,
-                       uint16_t buffer_size);
+  // SDI-12 Functions
+  bool send_command(uint8_t address, const char* command);
+  // Read response from SDI-12 device with timeout (ticks)
+  // Returns true if response received, false on timeout
+  bool read_response(char* buffer, uint32_t timeout_ticks,
+                     uint16_t buffer_size);
 
-    /**
-     * @brief Initiates a measurement and retrieves all measurement values from the SDI-12 sensor.
-     * @param address SDI-12 address (0-9)
-     * @param result_buffer Buffer to store the concatenated measurement values (null-terminated)
-     * @param buffer_size Size of the result_buffer
-     * @param measurement_number Optional measurement number (0-9), default is -1 (standard M command)
-     * @return USDI12Result enum indicating result or error type
-     */
-    USDI12Result get_measurement(uint8_t address,
-                                 char* result_buffer,
-                                 uint16_t buffer_size,
-                                 int8_t measurement_number = -1);
+  /**
+   * @brief Initiates a measurement and retrieves all measurement values from
+   * the SDI-12 sensor.
+   * @param address SDI-12 address (0-9)
+   * @param result_buffer Buffer to store the concatenated measurement values
+   * (null-terminated)
+   * @param buffer_size Size of the result_buffer
+   * @param measurement_number Optional measurement number (0-9), default is -1
+   * (standard M command)
+   * @return USDI12Result enum indicating result or error type
+   */
+  USDI12Result get_measurement(uint8_t address, char* result_buffer,
+                               uint16_t buffer_size,
+                               int8_t measurement_number = -1);
 
-  private:
-    // Declarations
-    // GPIO pin configuration
-    volatile uint8_t* _enTxPort;
-    uint8_t _enTxBit;
-    volatile uint8_t* _enRxPort;
-    uint8_t _enRxBit;
+ private:
+  // Declarations
+  // GPIO pin configuration
+  volatile uint8_t* _enTxPort;
+  uint8_t _enTxBit;
+  volatile uint8_t* _enRxPort;
+  uint8_t _enRxBit;
 
-    uint32_t _cpuFreq; // Used for calculating UBRR value
+  uint32_t _cpuFreq;  // Used for calculating UBRR value
 
-    volatile uint32_t* _tick_ptr; // Ptr to system tick counter for timeouts
+  volatile uint32_t* _tick_ptr;  // Ptr to system tick counter for timeouts
 
-    bool _initialized; // Tracks if DDRs have been set
-    // End Declarations
+  bool _initialized;  // Tracks if DDRs have been set
+  // End Declarations
 
-    // Private Functions
-    void begin(); // Sets DDRx bits (called automatically once)
-    void setBit(volatile uint8_t* port, uint8_t bit);
-    void clearBit(volatile uint8_t* port, uint8_t bit);
-    void uart_send_byte(uint8_t data);
-    // End Private Functions
+  // Private Functions
+  void begin();  // Sets DDRx bits (called automatically once)
+  void setBit(volatile uint8_t* port, uint8_t bit);
+  void clearBit(volatile uint8_t* port, uint8_t bit);
+  void uart_send_byte(uint8_t data);
+  // End Private Functions
 
-    // UART Register pointers
-    volatile uint8_t* _ucsrNa; // UCSRnA Control and Status Reg A (DS: 22.10.2)
-    volatile uint8_t* _ucsrNb; // UCSRnB Control and Status Reg B (DS: 22.10.3)
-    volatile uint8_t* _ucsrNc; // UCSRnC Control and Status Reg C (DS: 22.10.4)
-    volatile uint16_t* _ubrrN; // UBRRn 12 bit reg (DS: 22.10.5)
-    volatile uint8_t* _udrN;   // Pointer to UART data register
-    uint8_t _udreN_bit;        // Bit position for UDREn (Data Register Empty)
+  // UART Register pointers
+  volatile uint8_t* _ucsrNa;  // UCSRnA Control and Status Reg A (DS: 22.10.2)
+  volatile uint8_t* _ucsrNb;  // UCSRnB Control and Status Reg B (DS: 22.10.3)
+  volatile uint8_t* _ucsrNc;  // UCSRnC Control and Status Reg C (DS: 22.10.4)
+  volatile uint16_t* _ubrrN;  // UBRRn 12 bit reg (DS: 22.10.5)
+  volatile uint8_t* _udrN;    // Pointer to UART data register
+  uint8_t _udreN_bit;         // Bit position for UDREn (Data Register Empty)
 
-    // SDI-12 UART Config
-    static const uint16_t SDI12_BAUD_RATE = 1200;
-    static const uint8_t SDI12_DATA_BITS = 7;
-    static const uint8_t SDI12_PARITY_EVEN = 1;
-    static const uint8_t SDI12_STOP_BITS = 1;
+  // SDI-12 UART Config
+  static const uint16_t SDI12_BAUD_RATE = 1200;
+  static const uint8_t SDI12_DATA_BITS = 7;
+  static const uint8_t SDI12_PARITY_EVEN = 1;
+  static const uint8_t SDI12_STOP_BITS = 1;
 };
 
-#endif // USDI12_H
+#endif  // USDI12_H
