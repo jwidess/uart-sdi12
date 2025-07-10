@@ -183,10 +183,9 @@ bool USDI12::read_response(char* buffer, uint32_t timeout_ticks,
   while (((*_tick_ptr - start_tick) < timeout_ticks + 1) && (idx < max_len)) {
     if (*_ucsrNa & (1 << 7)) {    // Check if data is available
       char c = (char)(*_udrN);    // Read the received byte
-      if (got_cr && c == '\n') {  // Check for CRLF sequence
+      if (got_cr && c == '\n') {  // Check for CRLF sequence (after CR, got LF)
         buffer[idx] = '\0';       // Null-terminate the string
-        if (idx > 0 &&
-            buffer[idx - 1] == '\r') {  // If last char is CR, remove it
+        if (idx > 0 && buffer[idx - 1] == '\r') {  // If last char is CR replace
           buffer[idx - 1] = '\0';
         }
         return true;  // Success: got CRLF
@@ -198,7 +197,7 @@ bool USDI12::read_response(char* buffer, uint32_t timeout_ticks,
         }
         // If idx >= max_len, discard extra chars to avoid overrun
       }
-      got_cr = (c == '\r');
+      got_cr = (c == '\r');  // Check if current char is CR
     }
   }
   buffer[(idx < max_len) ? idx : max_len] = '\0';
