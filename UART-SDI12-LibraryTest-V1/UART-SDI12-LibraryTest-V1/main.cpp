@@ -53,15 +53,20 @@ void uart0_send_string(const char* str) {
 
 int main(void) {
   // - !EN_TX on PH2, EN_RX on PH3
-  USDI12 sdi12(&SDI12_TX_PORT, (1 << SDI12_TX_PIN), &SDI12_RX_PORT,
-               (1 << SDI12_RX_PIN), SDI12_UART_NUM, F_CPU, &system_tick);
+
+  // 1. Instantiate the HAL object
+  AVR_HAL avr_hal(&SDI12_TX_PORT, (1 << SDI12_TX_PIN), &SDI12_RX_PORT,
+                  (1 << SDI12_RX_PIN), 2);
+
+  // 2. Pass the HAL object to USDI12
+  USDI12 sdi12(&avr_hal, &system_tick);
 
   sdi12.set_rx();  // Initializes DDRs and sets RX mode
   _delay_ms(500);
 
   sdi12.set_tx();  // Switches to TX mode
 
-  sdi12.begin_uart();  // Initializes UART for SDI-12 communication
+  sdi12.begin_uart(F_CPU);  // Initializes UART for SDI-12 communication
 
   timer5_init_2s();
   sei();  // Enable global interrupts

@@ -12,22 +12,6 @@
  *
  * =========================================
  */
-/**
- * @section physical_connections Physical Connections
- * | Signal Name | Connected To           | Functionality                                      |
- * | ----------- | ---------------------- | -------------------------------------------------- |
- * | `!EN_TX`    | - Transceiver: `!OEB`  | Enables transceiver B-side driver (TX when LOW)    |
- * |      |----> | - Analog Switch: `SEL` | Selects TX (LOW) or RX (HIGH) path                 |
- * | `EN_RX`     | - Transceiver: `OEA`   | Enables transceiver A-side receiver (RX when HIGH) |
- * | `!EN`       | - Analog Switch: `!EN` | Always LOW (switch always enabled)                 |
- *
- * @section mode_control_logic Mode Control Logic
- * | Mode | `!EN_TX` | `EN_RX` | Analog Switch Path | Transceiver Direction      |
- * | ---- | -------- | ------- | ------------------ | -------------------------- |
- * | TX   | `0`      | `0`     | `SEL = 0` → NC→COM | A=IN, B=OUT (TX to SDI-12) |
- * | RX   | `1`      | `1`     | `SEL = 1` → NO→COM | A=OUT, B=IN (SDI-12 to RX) |
- *
- */
 // clang-format on
 
 #ifndef USDI12_H
@@ -36,6 +20,8 @@
 #include <avr/io.h>
 #include <stdio.h>   // For snprintf, sscanf
 #include <string.h>  // For strncat, strncpy
+
+#include "USDI12_HAL.hpp"  // HAL Interface
 
 #ifndef USDI12_BUFFER_SIZE
 /**
@@ -65,15 +51,14 @@ enum USDI12Result {
 
 class USDI12 {
  public:
-  // TX Port, TX Pin, RX Port, RX Pin, UARTn
-  USDI12(volatile uint8_t* enTxPort, uint8_t enTxBit,
-         volatile uint8_t* enRxPort, uint8_t enRxBit, uint8_t uartNum,
-         uint32_t cpuFreq, volatile uint32_t* tick_ptr);
+  // HAL-based constructor
+  USDI12(USDI12_HAL* hal, volatile uint32_t* tick_ptr);
 
   // Setup Functions
-  void set_tx();      // Set GPIOs for Transmit mode
-  void set_rx();      // Set GPIOs for Receive mode
-  bool begin_uart();  // Initialize UART for SDI-12 communication
+  void set_tx();  // Set GPIOs for Transmit mode
+  void set_rx();  // Set GPIOs for Receive mode
+  bool begin_uart(
+      uint32_t cpuFreq);  // Initialize UART for SDI-12 communication
 
   // SDI-12 Functions
   bool send_command(uint8_t address, const char* command);
@@ -81,6 +66,7 @@ class USDI12 {
   // Returns true if response received, false on timeout
   bool read_response(char* buffer, uint32_t timeout_ticks,
                      uint16_t buffer_size);
+  void uart_send_byte(uint8_t data);
 
   /**
    * @brief Initiates a measurement and retrieves all measurement values from
@@ -98,36 +84,8 @@ class USDI12 {
                                int8_t measurement_number = -1);
 
  private:
-  // Declarations
-  // GPIO pin configuration
-  volatile uint8_t* _enTxPort;
-  uint8_t _enTxBit;
-  volatile uint8_t* _enRxPort;
-  uint8_t _enRxBit;
-
-  uint32_t _cpuFreq;  // Used for calculating UBRR value
-
-  volatile uint32_t* _tick_ptr;  // Ptr to system tick counter for timeouts
-
-  bool _initialized;  // Tracks if DDRs have been set
-  // End Declarations
-
-  // Private Functions
-  void begin();  // Sets DDRx bits (called automatically once)
-  void setBit(volatile uint8_t* port, uint8_t bit);
-  void clearBit(volatile uint8_t* port, uint8_t bit);
-  void uart_send_byte(uint8_t data);
-  // End Private Functions
-
-  // UART Register pointers
-  volatile uint8_t* _ucsrNa;  // UCSRnA Control and Status Reg A (DS: 22.10.2)
-  volatile uint8_t* _ucsrNb;  // UCSRnB Control and Status Reg B (DS: 22.10.3)
-  volatile uint8_t* _ucsrNc;  // UCSRnC Control and Status Reg C (DS: 22.10.4)
-  volatile uint16_t* _ubrrN;  // UBRRn 12 bit reg (DS: 22.10.5)
-  volatile uint8_t* _udrN;    // Pointer to UART data register
-  uint8_t _udreN_bit;         // Bit position for UDREn (Data Register Empty)
-
-  // SDI-12 UART Config
+  USDI12_HAL* _hal;
+  volatile uint32_t* _tick_ptr;
   static const uint16_t SDI12_BAUD_RATE = 1200;
   static const uint8_t SDI12_DATA_BITS = 7;
   static const uint8_t SDI12_PARITY_EVEN = 1;
