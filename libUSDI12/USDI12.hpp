@@ -48,7 +48,7 @@
  * - CR is a single character
  * - LF is a single character
  */
-#define USDI12_BUFFER_SIZE 81
+#define USDI12_BUFFER_SIZE 82  // 81 chars + null terminator
 #endif
 
 // SDI-12 result codes for get_measurement (C++03 compatible)
