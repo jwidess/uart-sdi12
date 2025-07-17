@@ -34,20 +34,40 @@ class USDI12_HAL {
   virtual bool uart_data_available() = 0;
   virtual uint8_t uart_read_byte() = 0;
   virtual void wait_for_tx_complete() = 0;
+  virtual uint32_t get_tick() = 0;       // Returns current tick count
+  virtual float ticks_per_second() = 0;  // Returns tick frequency
 };
 
-// AVR implementation
+// =============================
+// AVR_HAL: AVR SDI-12 Hardware Abstraction Layer
 #ifdef __AVR__
 #include <avr/io.h>
 
+/**
+ * @class AVR_HAL
+ * @brief Hardware Abstraction Layer implementation for SDI-12 on AVR
+ * microcontrollers
+ *
+ * This class provides all hardware-specific operations required by the SDI-12
+ * protocol, including UART configuration and GPIO control for TX/RX enable. The
+ * UART number (0-3) is selected in the constructor, and all register pointers
+ * are set automatically. Use this class with the USDI12 protocol class.
+ *
+ * Example usage:
+ *   AVR_HAL hal(&SDI12_TX_PORT, (1 << SDI12_TX_PIN), &SDI12_RX_PORT, (1 <<
+ * SDI12_RX_PIN), 0); // UART0 USDI12 sdi12(&hal, &system_tick);
+ */
 class AVR_HAL : public USDI12_HAL {
  public:
   AVR_HAL(volatile uint8_t* enTxPort, uint8_t enTxBit,
-          volatile uint8_t* enRxPort, uint8_t enRxBit, uint8_t uart_num)
+          volatile uint8_t* enRxPort, uint8_t enRxBit, uint8_t uart_num,
+          volatile uint32_t* tick_ptr, float ticks_per_second)
       : _enTxPort(enTxPort),
         _enTxBit(enTxBit),
         _enRxPort(enRxPort),
-        _enRxBit(enRxBit) {
+        _enRxBit(enRxBit),
+        _tick_ptr(tick_ptr),
+        _ticks_per_second(ticks_per_second) {
     // Set UART register pointers and UDRE bit based on uart_num (0-3)
     switch (uart_num) {
       case 0:
@@ -101,6 +121,7 @@ class AVR_HAL : public USDI12_HAL {
     *_enTxPort |= _enTxBit;
     *_enRxPort |= _enRxBit;
   }
+
   bool begin_uart(uint32_t cpuFreq) {
     uint16_t ubrr = (cpuFreq / 16 / 1200) - 1;
     if (ubrr > 4095) return false;
@@ -114,17 +135,24 @@ class AVR_HAL : public USDI12_HAL {
     *_ucsrNc = (1 << 2) | (1 << 5);  // UCSZn1 | UPMn1 (7 data, even parity)
     return true;
   }
+
   void uart_send_byte(uint8_t data) {
     // Wait for the Data Reg Empty flag to be set then send data
     while (!(*_ucsrNa & (1 << _udreN_bit)));
     *_udrN = data;
   }
+
   bool uart_data_available() { return (*_ucsrNa & (1 << 7)); }
+
   uint8_t uart_read_byte() { return *_udrN; }
+
   void wait_for_tx_complete() {
     while (!(*_ucsrNa & (1 << 6)));  // Wait for TXC flag
     *_ucsrNa |= (1 << 6);            // Clear TXC by writing 1
   }
+
+  uint32_t get_tick() { return (_tick_ptr ? *_tick_ptr : 0); }
+  float ticks_per_second() { return _ticks_per_second; }
 
  private:
   volatile uint8_t* _enTxPort;
@@ -137,5 +165,7 @@ class AVR_HAL : public USDI12_HAL {
   volatile uint16_t* _ubrrN;  // UBRRn 12 bit reg (DS: 22.10.5)
   volatile uint8_t* _udrN;    // Pointer to UART data register
   uint8_t _udreN_bit;         // Bit position for UDREn (Data Register Empty)
+  volatile uint32_t* _tick_ptr;
+  float _ticks_per_second;
 };
 #endif  // __AVR__
