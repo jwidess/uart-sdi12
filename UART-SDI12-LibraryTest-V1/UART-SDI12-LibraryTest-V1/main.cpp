@@ -12,6 +12,8 @@
 #include "USDI12.hpp"
 #include "config.h"
 
+#define UART_USDI12_NUM 2  // Use UART2 for SDI-12
+
 volatile uint32_t system_tick = 0;
 
 void timer5_init_2s() {
@@ -52,32 +54,27 @@ void uart0_send_string(const char* str) {
 //======================================
 
 int main(void) {
-  // - !EN_TX on PH2, EN_RX on PH3
-
-  // 1. Instantiate the HAL object
+  // Instantiate HAL object
   AVR_HAL avr_hal(&SDI12_TX_PORT, (1 << SDI12_TX_PIN), &SDI12_RX_PORT,
-                  (1 << SDI12_RX_PIN), 2);
+                  (1 << SDI12_RX_PIN), UART_USDI12_NUM);
 
-  // 2. Pass the HAL object to USDI12
+  // Pass HAL object to USDI12
   USDI12 sdi12(&avr_hal, &system_tick);
 
   sdi12.set_rx();  // Initializes DDRs and sets RX mode
   _delay_ms(500);
+  sdi12.set_tx();  // Switches to TX mode (for testing)
 
-  sdi12.set_tx();  // Switches to TX mode
-
-  sdi12.begin_uart(F_CPU);  // Initializes UART for SDI-12 communication
+  sdi12.begin_uart(F_CPU);
 
   timer5_init_2s();
   sei();  // Enable global interrupts
 
-  // --- BLINK SETUP ---
-  DDRB |= (1 << PB7);  // Set PB7 (Arduino Mega 2560 Pin 13) as output
-  // --- END BLINK SETUP ---
+  DDRB |= (1 << PB7);  // Set PB7 (Arduino Mega 2560 Pin 13) as output (blink)
 
   char sdi12_buffer[USDI12_BUFFER_SIZE] = {0};
 
-  uart0_init(9600);  // Set baud rate to 9600
+  uart0_init(9600);  // USB UART at 9600 baud
   uart0_send_string("\r\nBoot...\r\n");
 
   while (1) {
