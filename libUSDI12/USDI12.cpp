@@ -25,6 +25,10 @@ void USDI12::set_tx() { _hal->set_tx(); }
 
 void USDI12::set_rx() { _hal->set_rx(); }
 
+uint32_t USDI12::get_time_ms() const {
+  return (uint32_t)(_hal->get_tick() * (1000.0f / _hal->ticks_per_second()));
+}
+
 bool USDI12::begin_uart(uint32_t cpuFreq) { return _hal->begin_uart(cpuFreq); }
 
 void USDI12::uart_send_byte(uint8_t data) { _hal->uart_send_byte(data); }
@@ -49,7 +53,7 @@ bool USDI12::send_command(uint8_t address, const char* command) {
   _hal->wait_for_tx_complete();
   set_rx();
   return true;
-}
+}  // END: send_command
 
 bool USDI12::read_response(char* buffer, uint32_t timeout_ms,
                            uint16_t buffer_size) {
@@ -58,11 +62,9 @@ bool USDI12::read_response(char* buffer, uint32_t timeout_ms,
   int idx = 0;
   bool got_cr = false;
   // Take current tick and convert to milliseconds
-  uint32_t start_ms = (_hal->get_tick() * (1000.0f / _hal->ticks_per_second()));
+  uint32_t start_ms = get_time_ms();
   int max_len = buffer_size - 1;
-  while ((((_hal->get_tick() * (1000.0f / _hal->ticks_per_second())) -
-           start_ms) < timeout_ms) &&
-         (idx < max_len)) {
+  while (((get_time_ms() - start_ms) < timeout_ms) && (idx < max_len)) {
     if (_hal->uart_data_available()) {
       char c = (char)(_hal->uart_read_byte());
       if (got_cr && c == '\n') {
@@ -84,7 +86,7 @@ bool USDI12::read_response(char* buffer, uint32_t timeout_ms,
   }
   buffer[(idx < max_len) ? idx : max_len] = '\0';
   return false;  // Timeout or buffer full
-}
+}  // END: read_response
 
 /**
  * @brief Initiates a measurement and retrieves all measurement values from the
