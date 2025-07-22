@@ -83,6 +83,7 @@ class USDI12 {
 
  private:
   USDI12_HAL* _hal;
+  uint32_t get_time_ms() const;
   static const uint16_t SDI12_BAUD_RATE = 1200;
   static const uint8_t SDI12_DATA_BITS = 7;
   static const uint8_t SDI12_PARITY_EVEN = 1;

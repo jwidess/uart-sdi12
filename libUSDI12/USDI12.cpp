@@ -60,11 +60,12 @@ bool USDI12::read_response(char* buffer, uint32_t timeout_ms,
   set_rx();
   if (!buffer || !timeout_ms || buffer_size == 0) return false;
   int idx = 0;
+  uint32_t timeout_ms_margin = timeout_ms + 100;  // Extra 100ms buffer
   bool got_cr = false;
   // Take current tick and convert to milliseconds
   uint32_t start_ms = get_time_ms();
   int max_len = buffer_size - 1;
-  while (((get_time_ms() - start_ms) < timeout_ms) && (idx < max_len)) {
+  while (((get_time_ms() - start_ms) < timeout_ms_margin) && (idx < max_len)) {
     if (_hal->uart_data_available()) {
       char c = (char)(_hal->uart_read_byte());
       if (got_cr && c == '\n') {
@@ -124,7 +125,7 @@ USDI12Result USDI12::get_measurement(uint8_t address, char* result_buffer,
   // Response: atttn<CR><LF> (a=address, ttt=time, n=number of values)
   // Example: 10112<CR><LF> (1=address, 011=11s, 2=2 values)
   // Parse response: a ttt n
-  int16_t ttt = 0;  // Time in seconds
+  int16_t ttt = 0;  // Time until data is ready in seconds
   int16_t addr, n;
   if (sscanf(response, "%1d%3d%1d", &addr, &ttt, &n) != 3) {  // 3 Values
     return USDI12Result_InvalidResponse;
@@ -144,8 +145,7 @@ USDI12Result USDI12::get_measurement(uint8_t address, char* result_buffer,
 
   // Wait for service request (a<CR><LF>) or timeout
   char service_req[4] = {0};
-  bool got_service = read_response(service_req, wait_ms,
-                                   sizeof(service_req));  // wait for ready
+  bool got_service = read_response(service_req, wait_ms, sizeof(service_req));
   // After service request or timeout, send D0! and read values
   char values[USDI12_BUFFER_SIZE * 2] = {0};
   uint8_t values_received = 0;
