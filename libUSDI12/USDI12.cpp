@@ -19,12 +19,15 @@
 #include <stdio.h>   // For snprintf, sscanf
 #include <string.h>  // For strncat, strncpy
 
-USDI12::USDI12(USDI12_HAL* hal, volatile uint32_t* tick_ptr)
-    : _hal(hal), _tick_ptr(tick_ptr) {}
+USDI12::USDI12(USDI12_HAL* hal) : _hal(hal) {}
 
 void USDI12::set_tx() { _hal->set_tx(); }
 
 void USDI12::set_rx() { _hal->set_rx(); }
+
+uint32_t USDI12::get_time_ms() const {
+  return (uint32_t)(_hal->get_tick() * (1000.0f / _hal->ticks_per_second()));
+}
 
 bool USDI12::begin_uart(uint32_t cpuFreq) { return _hal->begin_uart(cpuFreq); }
 
@@ -50,17 +53,19 @@ bool USDI12::send_command(uint8_t address, const char* command) {
   _hal->wait_for_tx_complete();
   set_rx();
   return true;
-}
+}  // END: send_command
 
-bool USDI12::read_response(char* buffer, uint32_t timeout_ticks,
+bool USDI12::read_response(char* buffer, uint32_t timeout_ms,
                            uint16_t buffer_size) {
   set_rx();
-  if (!buffer || !_tick_ptr || buffer_size == 0) return false;
+  if (!buffer || !timeout_ms || buffer_size == 0) return false;
   int idx = 0;
+  uint32_t timeout_ms_margin = timeout_ms + 100;  // Extra 100ms buffer
   bool got_cr = false;
-  uint32_t start_tick = *_tick_ptr;
+  // Take current tick and convert to milliseconds
+  uint32_t start_ms = get_time_ms();
   int max_len = buffer_size - 1;
-  while (((*_tick_ptr - start_tick) < timeout_ticks + 1) && (idx < max_len)) {
+  while (((get_time_ms() - start_ms) < timeout_ms_margin) && (idx < max_len)) {
     if (_hal->uart_data_available()) {
       char c = (char)(_hal->uart_read_byte());
       if (got_cr && c == '\n') {
@@ -82,7 +87,7 @@ bool USDI12::read_response(char* buffer, uint32_t timeout_ticks,
   }
   buffer[(idx < max_len) ? idx : max_len] = '\0';
   return false;  // Timeout or buffer full
-}
+}  // END: read_response
 
 /**
  * @brief Initiates a measurement and retrieves all measurement values from the
@@ -103,7 +108,7 @@ USDI12Result USDI12::get_measurement(uint8_t address, char* result_buffer,
     return USDI12Result_InputError;  // Invalid address, buffer, or measurement
                                      // number
   }
-  int defTimeOutTicks = 1;  // Default timeout ticks
+  uint32_t defTimeoutMs = 1000;  // Default timeout in ms
   char cmd[6] = {0};
   char response[USDI12_BUFFER_SIZE] = {0};
   // Format: `aMn!` if measurement_number is specified, else `aM!`
@@ -115,12 +120,12 @@ USDI12Result USDI12::get_measurement(uint8_t address, char* result_buffer,
   if (!send_command(address, cmd + 1)) {
     return USDI12Result_CommandError;
   }
-  read_response(response, defTimeOutTicks, USDI12_BUFFER_SIZE);
+  read_response(response, defTimeoutMs, USDI12_BUFFER_SIZE);
 
   // Response: atttn<CR><LF> (a=address, ttt=time, n=number of values)
   // Example: 10112<CR><LF> (1=address, 011=11s, 2=2 values)
   // Parse response: a ttt n
-  int16_t ttt = 0;  // Time in seconds
+  int16_t ttt = 0;  // Time until data is ready in seconds
   int16_t addr, n;
   if (sscanf(response, "%1d%3d%1d", &addr, &ttt, &n) != 3) {  // 3 Values
     return USDI12Result_InvalidResponse;
@@ -130,22 +135,17 @@ USDI12Result USDI12::get_measurement(uint8_t address, char* result_buffer,
   }
   uint8_t num_values = n;  // Number of values expected
 
-  uint16_t wait_ticks = 0;
-  // Calculate wait_ticks based on ttt and tick interval (2 seconds per tick)
-  // E.g. ttt=0 or 1 -> 1 tick, ttt=2 -> 1 ticks, ttt=3 -> 2 ticks
+  // Calculate wait_ms based on ttt (seconds from SDI-12 response)
+  uint32_t wait_ms = 0;
   if (ttt == 0 || ttt == 1) {
-    wait_ticks = 1;
+    wait_ms = 1000;
   } else {
-    wait_ticks = ttt / 2;
-    if (ttt % 2 != 0) {
-      wait_ticks += 1;  // Add an extra tick if there's a remainder
-    }
+    wait_ms = ttt * 1000;
   }
 
   // Wait for service request (a<CR><LF>) or timeout
   char service_req[4] = {0};
-  bool got_service = read_response(service_req, wait_ticks,
-                                   sizeof(service_req));  // wait for ready
+  bool got_service = read_response(service_req, wait_ms, sizeof(service_req));
   // After service request or timeout, send D0! and read values
   char values[USDI12_BUFFER_SIZE * 2] = {0};
   uint8_t values_received = 0;
@@ -156,7 +156,7 @@ USDI12Result USDI12::get_measurement(uint8_t address, char* result_buffer,
       return USDI12Result_CommandError;
     }
     char d_response[USDI12_BUFFER_SIZE] = {0};
-    if (!read_response(d_response, defTimeOutTicks, USDI12_BUFFER_SIZE)) {
+    if (!read_response(d_response, defTimeoutMs, USDI12_BUFFER_SIZE)) {
       return USDI12Result_CommandError;
     }
     // Skip address char, append rest to values

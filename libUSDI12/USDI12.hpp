@@ -52,20 +52,18 @@ enum USDI12Result {
 class USDI12 {
  public:
   // HAL-based constructor
-  USDI12(USDI12_HAL* hal, volatile uint32_t* tick_ptr);
+  USDI12(USDI12_HAL* hal);
 
   // Setup Functions
   void set_tx();  // Set GPIOs for Transmit mode
   void set_rx();  // Set GPIOs for Receive mode
-  bool begin_uart(
-      uint32_t cpuFreq);  // Initialize UART for SDI-12 communication
+  bool begin_uart(uint32_t cpuFreq);  // Initialize UART for SDI-12 communication
 
   // SDI-12 Functions
   bool send_command(uint8_t address, const char* command);
-  // Read response from SDI-12 device with timeout (ticks)
+  // Read response from SDI-12 device with timeout (milliseconds)
   // Returns true if response received, false on timeout
-  bool read_response(char* buffer, uint32_t timeout_ticks,
-                     uint16_t buffer_size);
+  bool read_response(char* buffer, uint32_t timeout_ms, uint16_t buffer_size);
   void uart_send_byte(uint8_t data);
 
   /**
@@ -85,7 +83,7 @@ class USDI12 {
 
  private:
   USDI12_HAL* _hal;
-  volatile uint32_t* _tick_ptr;
+  uint32_t get_time_ms() const;
   static const uint16_t SDI12_BAUD_RATE = 1200;
   static const uint8_t SDI12_DATA_BITS = 7;
   static const uint8_t SDI12_PARITY_EVEN = 1;
