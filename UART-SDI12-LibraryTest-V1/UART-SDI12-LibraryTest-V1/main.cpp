@@ -59,7 +59,7 @@ int main(void) {
                   (1 << SDI12_RX_PIN), UART_USDI12_NUM, &system_tick, 0.5f);
 
   // Pass HAL object to USDI12
-  USDI12 sdi12(&avr_hal, &system_tick);
+  USDI12 sdi12(&avr_hal);
 
   sdi12.set_rx();  // Initializes DDRs and sets RX mode
   _delay_ms(500);
@@ -91,6 +91,15 @@ int main(void) {
         sdi12.get_measurement('0', sdi12_buffer, USDI12_BUFFER_SIZE, 1);
     uart0_send_string("\r\nMeasurement Result: ");
     uart0_send_char(MeasurementResult + '0');  // Convert to char for display
+    // Print English name of USDI12Result
+    const char* result_names[] = {
+        " Success",      " InputError",     " Timeout",     " InvalidResponse",
+        " CommandError", " BufferOverflow", " NullPointer", " Unexpected"};
+    if (MeasurementResult >= 0 && MeasurementResult <= 7) {
+      uart0_send_string(result_names[MeasurementResult]);
+    } else {
+      uart0_send_string("Unknown");
+    }
     uart0_send_string("\r\n");
     uart0_send_string("SDI-12 Response: ");
     uart0_send_string(sdi12_buffer);  // Send the response to the USB port
