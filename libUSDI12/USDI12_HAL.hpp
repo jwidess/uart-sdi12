@@ -34,8 +34,13 @@ class USDI12_HAL {
   virtual bool uart_data_available() = 0;
   virtual uint8_t uart_read_byte() = 0;
   virtual void wait_for_tx_complete() = 0;
-  virtual uint32_t get_tick() = 0;       // Returns current tick count
-  virtual float ticks_per_second() = 0;  // Returns tick frequency
+  virtual uint32_t get_tick() = 0;         // Returns current tick count
+  virtual float ticks_per_second() = 0;    // Returns tick frequency
+  virtual void delay_ms(uint32_t ms) = 0;  // Delay for specified milliseconds
+  virtual void uart_tx_pin_low() = 0;      // Force TX pin LOW (break)
+  virtual void uart_tx_pin_high() = 0;     // Force TX pin HIGH (marking)
+  virtual void disable_uart_tx() = 0;      // Disable UART transmitter
+  virtual void enable_uart_tx() = 0;       // Enable UART transmitter
 };
 
 // =============================
@@ -51,11 +56,12 @@ class USDI12_HAL {
  * This class provides all hardware-specific operations required by the SDI-12
  * protocol, including UART configuration and GPIO control for TX/RX enable. The
  * UART number (0-3) is selected in the constructor, and all register pointers
- * are set automatically. Use this class with the USDI12 protocol class.
+ * are set automatically. ticks_per_second must be >=1000.0f to ensure proper
+ * timing. Use this class with the USDI12 protocol class.
  *
  * Example usage:
- *   AVR_HAL hal(&SDI12_TX_PORT, (1 << SDI12_TX_PIN), &SDI12_RX_PORT, (1 <<
- * SDI12_RX_PIN), 0); // UART0 USDI12 sdi12(&hal, &system_tick);
+ * AVR_HAL avr_hal(&SDI12_TX_PORT, (1 << SDI12_TX_PIN), &SDI12_RX_PORT, (1 <<
+ * SDI12_RX_PIN), UART_USDI12_NUM, &ms_tick, 1000.0f);
  */
 class AVR_HAL : public USDI12_HAL {
  public:
@@ -68,7 +74,7 @@ class AVR_HAL : public USDI12_HAL {
         _enRxBit(enRxBit),
         _tick_ptr(tick_ptr),
         _ticks_per_second(ticks_per_second) {
-    // Set UART register pointers and UDRE bit based on uart_num (0-3)
+    // Set UART register pointers, UDRE bit, and TX pin for each UART
     switch (uart_num) {
       case 0:
         _ucsrNa = &UCSR0A;
@@ -77,6 +83,9 @@ class AVR_HAL : public USDI12_HAL {
         _ubrrN = &UBRR0;
         _udrN = &UDR0;
         _udreN_bit = UDRE0;
+        _tx_port = &PORTE;  // TXD0 = PE1
+        _tx_ddr = &DDRE;
+        _tx_bit = (1 << PE1);
         break;
       case 1:
         _ucsrNa = &UCSR1A;
@@ -85,6 +94,9 @@ class AVR_HAL : public USDI12_HAL {
         _ubrrN = &UBRR1;
         _udrN = &UDR1;
         _udreN_bit = UDRE1;
+        _tx_port = &PORTD;  // TXD1 = PD3
+        _tx_ddr = &DDRD;
+        _tx_bit = (1 << PD3);
         break;
       case 2:
         _ucsrNa = &UCSR2A;
@@ -93,6 +105,9 @@ class AVR_HAL : public USDI12_HAL {
         _ubrrN = &UBRR2;
         _udrN = &UDR2;
         _udreN_bit = UDRE2;
+        _tx_port = &PORTH;  // TXD2 = PH1
+        _tx_ddr = &DDRH;
+        _tx_bit = (1 << PH1);
         break;
       case 3:
         _ucsrNa = &UCSR3A;
@@ -101,6 +116,9 @@ class AVR_HAL : public USDI12_HAL {
         _ubrrN = &UBRR3;
         _udrN = &UDR3;
         _udreN_bit = UDRE3;
+        _tx_port = &PORTJ;  // TXD3 = PJ1
+        _tx_ddr = &DDRJ;
+        _tx_bit = (1 << PJ1);
         break;
       default:  // Default to UART0
         _ucsrNa = &UCSR0A;
@@ -109,6 +127,9 @@ class AVR_HAL : public USDI12_HAL {
         _ubrrN = &UBRR0;
         _udrN = &UDR0;
         _udreN_bit = UDRE0;
+        _tx_port = &PORTE;
+        _tx_ddr = &DDRE;
+        _tx_bit = (1 << PE1);
         break;
     }
   }
@@ -154,17 +175,46 @@ class AVR_HAL : public USDI12_HAL {
   uint32_t get_tick() { return (_tick_ptr ? *_tick_ptr : 0); }
   float ticks_per_second() { return _ticks_per_second; }
 
+  void delay_ms(uint32_t ms) {
+    uint32_t start = get_tick();
+    uint32_t ticks_needed = (uint32_t)(ms * (ticks_per_second() / 1000.0f));
+    while ((get_tick() - start) < ticks_needed) {
+      __asm__ __volatile__("");  // Prevent optimization
+    }
+  }
+
+  void enable_uart_tx() {
+    *_ucsrNb |= (1 << 3);  // Set TXENn (bit 3) to enable UART TX
+  }
+  void disable_uart_tx() {
+    // Clear TXENn bit in UCSRnB to disable UART transmitter
+    *_ucsrNb &= ~(1 << 3);  // TXENn = 3
+  }
+  void uart_tx_pin_low() {
+    disable_uart_tx();
+    *_tx_ddr |= _tx_bit;    // Set as output
+    *_tx_port &= ~_tx_bit;  // Drive LOW
+  }
+  void uart_tx_pin_high() {
+    disable_uart_tx();
+    *_tx_ddr |= _tx_bit;   // Set as output
+    *_tx_port |= _tx_bit;  // Drive HIGH
+  }
+
  private:
   volatile uint8_t* _enTxPort;
   uint8_t _enTxBit;
   volatile uint8_t* _enRxPort;
   uint8_t _enRxBit;
-  volatile uint8_t* _ucsrNa;  // UCSRnA Control and Status Reg A (DS: 22.10.2)
-  volatile uint8_t* _ucsrNb;  // UCSRnB Control and Status Reg B (DS: 22.10.3)
-  volatile uint8_t* _ucsrNc;  // UCSRnC Control and Status Reg C (DS: 22.10.4)
-  volatile uint16_t* _ubrrN;  // UBRRn 12 bit reg (DS: 22.10.5)
-  volatile uint8_t* _udrN;    // Pointer to UART data register
-  uint8_t _udreN_bit;         // Bit position for UDREn (Data Register Empty)
+  volatile uint8_t* _ucsrNa;   // UCSRnA Control and Status Reg A (DS: 22.10.2)
+  volatile uint8_t* _ucsrNb;   // UCSRnB Control and Status Reg B (DS: 22.10.3)
+  volatile uint8_t* _ucsrNc;   // UCSRnC Control and Status Reg C (DS: 22.10.4)
+  volatile uint16_t* _ubrrN;   // UBRRn 12 bit reg (DS: 22.10.5)
+  volatile uint8_t* _udrN;     // Pointer to UART data register
+  uint8_t _udreN_bit;          // Bit position for UDREn (Data Register Empty)
+  volatile uint8_t* _tx_port;  // Pointer to TX PORTx
+  volatile uint8_t* _tx_ddr;   // Pointer to TX DDRx
+  uint8_t _tx_bit;             // Bit mask for TX pin
   volatile uint32_t* _tick_ptr;
   float _ticks_per_second;
 };
