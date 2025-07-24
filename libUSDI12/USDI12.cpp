@@ -33,20 +33,17 @@ bool USDI12::begin_uart(uint32_t cpuFreq) { return _hal->begin_uart(cpuFreq); }
 
 void USDI12::uart_send_byte(uint8_t data) { _hal->uart_send_byte(data); }
 
-bool USDI12::send_command(uint8_t address, const char* command) {
-  if (address > '9' || address < '0') {
-    return false;
-  }
+bool USDI12::send_command(int8_t address, const char* command) {
   set_tx();
-  uart_send_byte(address);
+  // Only send address if valid
+  if (address >= '0' && address <= '9') {
+    uart_send_byte(address);
+  }
   // Send command string
   while (*command != '\0') {
     uart_send_byte(*command++);
   }
-  // Send termination character (!) if not already present
-  if (*(command - 1) != '!') {
-    uart_send_byte('!');
-  }
+
   // Add CRLF sequence
   uart_send_byte('\r');
   uart_send_byte('\n');
@@ -105,9 +102,9 @@ USDI12Result USDI12::get_measurement(uint8_t address, char* result_buffer,
                                      int8_t measurement_number) {
   if (address > '9' || address < '0' || !result_buffer || buffer_size == 0 ||
       measurement_number > 9) {
-    return USDI12Result_InputError;  // Invalid address, buffer, or measurement
-                                     // number
+    return USDI12Result_InputError;  // Invalid address, buf, or measurement #
   }
+
   uint32_t defTimeoutMs = 1000;  // Default timeout in ms
   char cmd[6] = {0};
   char response[USDI12_BUFFER_SIZE] = {0};
@@ -117,7 +114,7 @@ USDI12Result USDI12::get_measurement(uint8_t address, char* result_buffer,
   } else if (measurement_number == -1) {
     snprintf(cmd, sizeof(cmd), "%cM!", address);
   }
-  if (!send_command(address, cmd + 1)) {
+  if (!send_command(address, cmd + 1)) {  // Skip address char
     return USDI12Result_CommandError;
   }
   read_response(response, defTimeoutMs, USDI12_BUFFER_SIZE);
@@ -135,7 +132,7 @@ USDI12Result USDI12::get_measurement(uint8_t address, char* result_buffer,
   }
   uint8_t num_values = n;  // Number of values expected
 
-  // Calculate wait_ms based on ttt (seconds from SDI-12 response)
+  // Calculate wait_ms based on ttt (seconds until data is ready)
   uint32_t wait_ms = 0;
   if (ttt == 0 || ttt == 1) {
     wait_ms = 1000;
@@ -146,13 +143,13 @@ USDI12Result USDI12::get_measurement(uint8_t address, char* result_buffer,
   // Wait for service request (a<CR><LF>) or timeout
   char service_req[4] = {0};
   bool got_service = read_response(service_req, wait_ms, sizeof(service_req));
-  // After service request or timeout, send D0! and read values
+  // After service request or timeout, send Dn! and read values
   char values[USDI12_BUFFER_SIZE * 2] = {0};
   uint8_t values_received = 0;
   for (uint8_t d = 0; values_received < num_values && d < 10; ++d) {
     char d_cmd[6] = {0};
     snprintf(d_cmd, sizeof(d_cmd), "%cD%u!", address, d);
-    if (!send_command(address, d_cmd + 1)) {
+    if (!send_command(address, d_cmd + 1)) {  // Skip address char
       return USDI12Result_CommandError;
     }
     char d_response[USDI12_BUFFER_SIZE] = {0};

@@ -57,10 +57,11 @@ class USDI12 {
   // Setup Functions
   void set_tx();  // Set GPIOs for Transmit mode
   void set_rx();  // Set GPIOs for Receive mode
-  bool begin_uart(uint32_t cpuFreq);  // Initialize UART for SDI-12 communication
+  bool begin_uart(
+      uint32_t cpuFreq);  // Initialize UART for SDI-12 communication
 
   // SDI-12 Functions
-  bool send_command(uint8_t address, const char* command);
+  bool send_command(int8_t address = -1, const char* command);
   // Read response from SDI-12 device with timeout (milliseconds)
   // Returns true if response received, false on timeout
   bool read_response(char* buffer, uint32_t timeout_ms, uint16_t buffer_size);
