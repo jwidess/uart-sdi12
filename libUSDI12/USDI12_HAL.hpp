@@ -68,7 +68,7 @@ class AVR_HAL : public USDI12_HAL {
         _enRxBit(enRxBit),
         _tick_ptr(tick_ptr),
         _ticks_per_second(ticks_per_second) {
-    // Set UART register pointers and UDRE bit based on uart_num (0-3)
+    // Set UART register pointers, UDRE bit, and TX pin for each UART
     switch (uart_num) {
       case 0:
         _ucsrNa = &UCSR0A;
@@ -77,6 +77,9 @@ class AVR_HAL : public USDI12_HAL {
         _ubrrN = &UBRR0;
         _udrN = &UDR0;
         _udreN_bit = UDRE0;
+        _tx_port = &PORTE;  // TXD0 = PE1
+        _tx_ddr = &DDRE;
+        _tx_bit = (1 << PE1);
         break;
       case 1:
         _ucsrNa = &UCSR1A;
@@ -85,6 +88,9 @@ class AVR_HAL : public USDI12_HAL {
         _ubrrN = &UBRR1;
         _udrN = &UDR1;
         _udreN_bit = UDRE1;
+        _tx_port = &PORTD;  // TXD1 = PD3
+        _tx_ddr = &DDRD;
+        _tx_bit = (1 << PD3);
         break;
       case 2:
         _ucsrNa = &UCSR2A;
@@ -93,6 +99,9 @@ class AVR_HAL : public USDI12_HAL {
         _ubrrN = &UBRR2;
         _udrN = &UDR2;
         _udreN_bit = UDRE2;
+        _tx_port = &PORTH;  // TXD2 = PH1
+        _tx_ddr = &DDRH;
+        _tx_bit = (1 << PH1);
         break;
       case 3:
         _ucsrNa = &UCSR3A;
@@ -101,6 +110,9 @@ class AVR_HAL : public USDI12_HAL {
         _ubrrN = &UBRR3;
         _udrN = &UDR3;
         _udreN_bit = UDRE3;
+        _tx_port = &PORTJ;  // TXD3 = PJ1
+        _tx_ddr = &DDRJ;
+        _tx_bit = (1 << PJ1);
         break;
       default:  // Default to UART0
         _ucsrNa = &UCSR0A;
@@ -109,6 +121,9 @@ class AVR_HAL : public USDI12_HAL {
         _ubrrN = &UBRR0;
         _udrN = &UDR0;
         _udreN_bit = UDRE0;
+        _tx_port = &PORTE;
+        _tx_ddr = &DDRE;
+        _tx_bit = (1 << PE1);
         break;
     }
   }
@@ -159,12 +174,15 @@ class AVR_HAL : public USDI12_HAL {
   uint8_t _enTxBit;
   volatile uint8_t* _enRxPort;
   uint8_t _enRxBit;
-  volatile uint8_t* _ucsrNa;  // UCSRnA Control and Status Reg A (DS: 22.10.2)
-  volatile uint8_t* _ucsrNb;  // UCSRnB Control and Status Reg B (DS: 22.10.3)
-  volatile uint8_t* _ucsrNc;  // UCSRnC Control and Status Reg C (DS: 22.10.4)
-  volatile uint16_t* _ubrrN;  // UBRRn 12 bit reg (DS: 22.10.5)
-  volatile uint8_t* _udrN;    // Pointer to UART data register
-  uint8_t _udreN_bit;         // Bit position for UDREn (Data Register Empty)
+  volatile uint8_t* _ucsrNa;   // UCSRnA Control and Status Reg A (DS: 22.10.2)
+  volatile uint8_t* _ucsrNb;   // UCSRnB Control and Status Reg B (DS: 22.10.3)
+  volatile uint8_t* _ucsrNc;   // UCSRnC Control and Status Reg C (DS: 22.10.4)
+  volatile uint16_t* _ubrrN;   // UBRRn 12 bit reg (DS: 22.10.5)
+  volatile uint8_t* _udrN;     // Pointer to UART data register
+  uint8_t _udreN_bit;          // Bit position for UDREn (Data Register Empty)
+  volatile uint8_t* _tx_port;  // Pointer to TX PORTx
+  volatile uint8_t* _tx_ddr;   // Pointer to TX DDRx
+  uint8_t _tx_bit;             // Bit mask for TX pin
   volatile uint32_t* _tick_ptr;
   float _ticks_per_second;
 };
