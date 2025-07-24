@@ -49,12 +49,13 @@ void delay_ms(uint32_t ms) {
 //======================================
 // Arduino Mega USB Port Communication
 
-void uart0_init(uint32_t baud) {  // Init Arduino Mega 2560 USB UART
-  uint16_t ubrr = (F_CPU / 16 / baud) - 1;
+void uart0_init(uint32_t baud) {
+  UCSR0A |= (1 << U2X0);  // Enable double speed mode
+  uint16_t ubrr = (F_CPU / 8 / baud) - 1;
   UBRR0H = (ubrr >> 8) & 0xFF;
   UBRR0L = ubrr & 0xFF;
-  UCSR0B = (1 << TXEN0);                   // Enable transmitter
-  UCSR0C = (1 << UCSZ01) | (1 << UCSZ00);  // 8 data bits, no parity, 1 stop bit
+  UCSR0B = (1 << TXEN0);                   // Enable transmitter only
+  UCSR0C = (1 << UCSZ01) | (1 << UCSZ00);  // 8N1
 }
 
 void uart0_send_char(char c) {
@@ -72,8 +73,11 @@ void uart0_send_string(const char* str) {
 
 int main(void) {
   // Instantiate HAL object
+  // AVR_HAL avr_hal(&SDI12_TX_PORT, (1 << SDI12_TX_PIN), &SDI12_RX_PORT,
+  //                 (1 << SDI12_RX_PIN), UART_USDI12_NUM, &system_tick, 0.5f);
   AVR_HAL avr_hal(&SDI12_TX_PORT, (1 << SDI12_TX_PIN), &SDI12_RX_PORT,
-                  (1 << SDI12_RX_PIN), UART_USDI12_NUM, &system_tick, 0.5f);
+                  (1 << SDI12_RX_PIN), UART_USDI12_NUM, &ms_tick,
+                  1000.0f);  // Using ms tick for testing
 
   // Pass HAL object to USDI12
   USDI12 sdi12(&avr_hal);
@@ -88,7 +92,7 @@ int main(void) {
 
   char sdi12_buffer[USDI12_BUFFER_SIZE] = {0};
 
-  uart0_init(9600);  // USB UART at 9600 baud
+  uart0_init(115200);  // USB UART at 115200 baud
   uart0_send_string("\r\nBoot...\r\n");
 
   for (uint8_t i = 0; i < 6; i++) {
@@ -107,11 +111,24 @@ int main(void) {
     //      sdi12.send_command('0', sdi12_buffer);
     //  }
 
+    sdi12.send_command(-1, "?!");  // Address query
+    uint8_t AddrResult =
+        sdi12.read_response(sdi12_buffer, 100, USDI12_BUFFER_SIZE);
+    uart0_send_string("\r\nSDI-12 Address Query: ");
+    if (AddrResult) {
+      uart0_send_string("Success, Address: ");
+      uart0_send_string(sdi12_buffer);  // Send the response to the USB port
+    } else {
+      uart0_send_string("Failed or No Address");
+    }
+    uart0_send_string("\r\n");
+    memset(sdi12_buffer, 0, sizeof(sdi12_buffer));  // Clear buffer
+
     // Get measurement from SDI-12 device
     int8_t MeasurementResult =
         sdi12.get_measurement('0', sdi12_buffer, USDI12_BUFFER_SIZE, 1);
     uart0_send_string("\r\nMeasurement Result: ");
-    uart0_send_char(MeasurementResult + '0');  // Convert to char for display
+    uart0_send_char(MeasurementResult + '0');  // Convert to char
     // Print English name of USDI12Result
     const char* result_names[] = {
         " Success",      " InputError",     " Timeout",     " InvalidResponse",
@@ -128,9 +145,9 @@ int main(void) {
 
     // --- BLINK LOOP ---
     PORTB |= (1 << PB7);  // LED ON
-    _delay_ms(10);
+    delay_ms(20);
     PORTB &= ~(1 << PB7);  // LED OFF
-    _delay_ms(10);
+    delay_ms(20);
     // --- END BLINK LOOP ---
   }
 }
