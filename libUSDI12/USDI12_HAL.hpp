@@ -34,8 +34,13 @@ class USDI12_HAL {
   virtual bool uart_data_available() = 0;
   virtual uint8_t uart_read_byte() = 0;
   virtual void wait_for_tx_complete() = 0;
-  virtual uint32_t get_tick() = 0;       // Returns current tick count
-  virtual float ticks_per_second() = 0;  // Returns tick frequency
+  virtual uint32_t get_tick() = 0;         // Returns current tick count
+  virtual float ticks_per_second() = 0;    // Returns tick frequency
+  virtual void delay_ms(uint32_t ms) = 0;  // Delay for specified milliseconds
+  virtual void uart_tx_pin_low() = 0;      // Force TX pin LOW (break)
+  virtual void uart_tx_pin_high() = 0;     // Force TX pin HIGH (marking)
+  virtual void disable_uart_tx() = 0;      // Disable UART transmitter
+  virtual void enable_uart_tx() = 0;       // Enable UART transmitter
 };
 
 // =============================
@@ -168,6 +173,32 @@ class AVR_HAL : public USDI12_HAL {
 
   uint32_t get_tick() { return (_tick_ptr ? *_tick_ptr : 0); }
   float ticks_per_second() { return _ticks_per_second; }
+
+  void delay_ms(uint32_t ms) {
+    uint32_t start = get_tick();
+    uint32_t ticks_needed = (uint32_t)(ms * (ticks_per_second() / 1000.0f));
+    while ((get_tick() - start) < ticks_needed) {
+      __asm__ __volatile__("");  // Prevent optimization
+    }
+  }
+
+  void enable_uart_tx() {
+    *_ucsrNb |= (1 << 3);  // Set TXENn (bit 3) to enable UART TX
+  }
+  void disable_uart_tx() {
+    // Clear TXENn bit in UCSRnB to disable UART transmitter
+    *_ucsrNb &= ~(1 << 3);  // TXENn = 3
+  }
+  void uart_tx_pin_low() {
+    disable_uart_tx();
+    *_tx_ddr |= _tx_bit;    // Set as output
+    *_tx_port &= ~_tx_bit;  // Drive LOW
+  }
+  void uart_tx_pin_high() {
+    disable_uart_tx();
+    *_tx_ddr |= _tx_bit;   // Set as output
+    *_tx_port |= _tx_bit;  // Drive HIGH
+  }
 
  private:
   volatile uint8_t* _enTxPort;

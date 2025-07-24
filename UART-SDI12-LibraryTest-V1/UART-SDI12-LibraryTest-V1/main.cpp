@@ -12,8 +12,6 @@
 #include "USDI12.hpp"
 #include "config.h"
 
-#define UART_USDI12_NUM 2  // Use UART2 for SDI-12
-
 volatile uint32_t system_tick = 0;
 volatile uint32_t ms_tick = 0;  // Used for 1ms timer
 
@@ -73,11 +71,8 @@ void uart0_send_string(const char* str) {
 
 int main(void) {
   // Instantiate HAL object
-  // AVR_HAL avr_hal(&SDI12_TX_PORT, (1 << SDI12_TX_PIN), &SDI12_RX_PORT,
-  //                 (1 << SDI12_RX_PIN), UART_USDI12_NUM, &system_tick, 0.5f);
   AVR_HAL avr_hal(&SDI12_TX_PORT, (1 << SDI12_TX_PIN), &SDI12_RX_PORT,
-                  (1 << SDI12_RX_PIN), UART_USDI12_NUM, &ms_tick,
-                  1000.0f);  // Using ms tick for testing
+                  (1 << SDI12_RX_PIN), UART_USDI12_NUM, &ms_tick, 1000.0f);
 
   // Pass HAL object to USDI12
   USDI12 sdi12(&avr_hal);
@@ -110,7 +105,8 @@ int main(void) {
     //      // Echo the received response back to the SDI-12 device
     //      sdi12.send_command('0', sdi12_buffer);
     //  }
-
+    uart0_send_string("\r\nSending break and mark...\r\n");
+    sdi12.send_break_mark();       // Sends break and mark
     sdi12.send_command(-1, "?!");  // Address query
     uint8_t AddrResult =
         sdi12.read_response(sdi12_buffer, 100, USDI12_BUFFER_SIZE);
@@ -124,9 +120,21 @@ int main(void) {
     uart0_send_string("\r\n");
     memset(sdi12_buffer, 0, sizeof(sdi12_buffer));  // Clear buffer
 
+    _delay_ms(15);
+
+    sdi12.send_break_mark();  // Sends break and mark
+    uart0_send_string("\r\nSending Identification Command...\r\n");
+    sdi12.send_command('0', "I!");  // Identifcation command
+    sdi12.read_response(sdi12_buffer, 1000, USDI12_BUFFER_SIZE);
+    uart0_send_string("ID Success: ");
+    uart0_send_string(sdi12_buffer);  // Send the response to the USB port
+    memset(sdi12_buffer, 0, sizeof(sdi12_buffer));  // Clear buffer
+
+    _delay_ms(15);
     // Get measurement from SDI-12 device
+    sdi12.send_break_mark();  // Sends break and mark
     int8_t MeasurementResult =
-        sdi12.get_measurement('0', sdi12_buffer, USDI12_BUFFER_SIZE, 1);
+        sdi12.get_measurement('0', sdi12_buffer, USDI12_BUFFER_SIZE);
     uart0_send_string("\r\nMeasurement Result: ");
     uart0_send_char(MeasurementResult + '0');  // Convert to char
     // Print English name of USDI12Result
@@ -148,6 +156,8 @@ int main(void) {
     delay_ms(20);
     PORTB &= ~(1 << PB7);  // LED OFF
     delay_ms(20);
+
+    _delay_ms(2000);  // Wait 2 seconds before next iteration
     // --- END BLINK LOOP ---
   }
 }

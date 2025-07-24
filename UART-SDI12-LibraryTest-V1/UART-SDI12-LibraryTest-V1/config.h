@@ -5,7 +5,7 @@
 #define F_CPU 16000000UL
 
 // UART Configuration
-#define SDI12_UART_NUM 2  // Using UART2
+#define UART_USDI12_NUM 2  // Use UART2 for SDI-12
 
 // Pin Definitions
 // - !EN_TX on PH2, EN_RX on PH3

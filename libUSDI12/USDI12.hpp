@@ -55,16 +55,21 @@ class USDI12 {
   USDI12(USDI12_HAL* hal);
 
   // Setup Functions
-  void set_tx();  // Set GPIOs for Transmit mode
-  void set_rx();  // Set GPIOs for Receive mode
-  bool begin_uart(
-      uint32_t cpuFreq);  // Initialize UART for SDI-12 communication
+  void set_tx();                      // Set GPIOs for Transmit mode
+  void set_rx();                      // Set GPIOs for Receive mode
+  bool begin_uart(uint32_t cpuFreq);  // Initialize UART for SDI-12
 
   // ============================
   // SDI-12 Functions
 
-  // To not send an address, use -1 (E.g. sending "?!")
-  // Command is a null-terminated string, e.g. "M!"
+  bool send_break_mark(uint16_t break_ms = 12, uint16_t mark_ms = 9);
+  /**
+   * @brief Send an SDI-12 command to a device.
+   * @param address SDI-12 address (0-9), -1 to not send an address (E.g.
+   * sending "?!")
+   * @param command Command string to send E.g. "M!" (null-terminated)
+   * @return true if command sent successfully, false on error
+   */
   bool send_command(int8_t address, const char* command);
   // Read response from SDI-12 device with timeout (milliseconds)
   // Returns true if response received, false on timeout
