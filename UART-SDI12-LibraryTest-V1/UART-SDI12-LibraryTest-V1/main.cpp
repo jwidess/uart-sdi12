@@ -12,6 +12,8 @@
 #include "USDI12.hpp"
 #include "config.h"
 
+// ============================================================================
+// Timer Setup:
 volatile uint32_t system_tick = 0;
 volatile uint32_t ms_tick = 0;  // Used for 1ms timer
 
@@ -37,16 +39,8 @@ void timer0_init_1ms() {
 
 ISR(TIMER0_COMPA_vect) { ms_tick++; }
 
-void delay_ms(uint32_t ms) {
-  uint32_t start = ms_tick;
-  while ((ms_tick - start) < ms) {
-    __asm__ __volatile__("");  // Prevent optimization
-  }
-}
-
-//======================================
+// ============================================================================
 // Arduino Mega USB Port Communication
-
 void uart0_init(uint32_t baud) {
   UCSR0A |= (1 << U2X0);  // Enable double speed mode
   uint16_t ubrr = (F_CPU / 8 / baud) - 1;
@@ -66,8 +60,7 @@ void uart0_send_string(const char* str) {
     uart0_send_char(*str++);
   }
 }
-
-//======================================
+// ============================================================================
 
 int main(void) {
   // Instantiate HAL object
@@ -79,34 +72,29 @@ int main(void) {
 
   sdi12.begin_uart(F_CPU);
 
+  char sdi12_buffer[USDI12_BUFFER_SIZE] = {0};  // Buffer for SDI-12 responses
+
+  // Timers
   timer5_init_2s();
   timer0_init_1ms();
   sei();  // Enable global interrupts
 
+  // Blink LED
   DDRB |= (1 << PB7);  // Set PB7 (Arduino Mega 2560 Pin 13) as output (blink)
 
-  char sdi12_buffer[USDI12_BUFFER_SIZE] = {0};
-
-  uart0_init(115200);  // USB UART at 115200 baud
+  uart0_init(115200);  // USB UART
   uart0_send_string("\r\nBoot...\r\n");
 
-  for (uint8_t i = 0; i < 6; i++) {
-    sdi12.set_rx();  // RX mode (SEL=1)
-    delay_ms(10);
+  for (uint8_t i = 0; i < 6; i++) {  // Toggle SEL Line for testing
+    sdi12.set_rx();                  // RX mode (SEL=1)
+    _delay_ms(10);
     sdi12.set_tx();  // TX mode (SEL=0)
-    delay_ms(10);
+    _delay_ms(10);
   }
 
   while (1) {
-    // sdi12.send_command('0', "M!"); // Send command to SDI-12 device
-    //  Wait for and read the response
-    //  if (sdi12.read_response(sdi12_buffer, 1, USDI12_BUFFER_SIZE)) { // 1000
-    //  ticks timeout (adjust as needed)
-    //      // Echo the received response back to the SDI-12 device
-    //      sdi12.send_command('0', sdi12_buffer);
-    //  }
-    uart0_send_string("\r\nSending break and mark...\r\n");
-    sdi12.send_break_mark();       // Sends break and mark
+    uart0_send_string("\r\nSending break and mark...");
+    sdi12.send_break_mark();
     sdi12.send_command(-1, "?!");  // Address query
     uint8_t AddrResult =
         sdi12.read_response(sdi12_buffer, 100, USDI12_BUFFER_SIZE);
@@ -115,32 +103,34 @@ int main(void) {
       uart0_send_string("Success, Address: ");
       uart0_send_string(sdi12_buffer);  // Send the response to the USB port
     } else {
-      uart0_send_string("Failed or No Address");
+      uart0_send_string("FAIL or No Address");
     }
     uart0_send_string("\r\n");
     memset(sdi12_buffer, 0, sizeof(sdi12_buffer));  // Clear buffer
 
     _delay_ms(15);
 
-    sdi12.send_break_mark();  // Sends break and mark
+    sdi12.send_break_mark();
     uart0_send_string("\r\nSending Identification Command...\r\n");
-    sdi12.send_command('0', "I!");  // Identifcation command
+    sdi12.send_command('0', "I!");  // Identification command
     sdi12.read_response(sdi12_buffer, 1000, USDI12_BUFFER_SIZE);
     uart0_send_string("ID Success: ");
     uart0_send_string(sdi12_buffer);  // Send the response to the USB port
+    uart0_send_string("\r\n");
     memset(sdi12_buffer, 0, sizeof(sdi12_buffer));  // Clear buffer
 
     _delay_ms(15);
     // Get measurement from SDI-12 device
-    sdi12.send_break_mark();  // Sends break and mark
+    sdi12.send_break_mark();
     int8_t MeasurementResult =
         sdi12.get_measurement('0', sdi12_buffer, USDI12_BUFFER_SIZE);
     uart0_send_string("\r\nMeasurement Result: ");
     uart0_send_char(MeasurementResult + '0');  // Convert to char
     // Print English name of USDI12Result
-    const char* result_names[] = {
-        " Success",      " InputError",     " Timeout",     " InvalidResponse",
-        " CommandError", " BufferOverflow", " NullPointer", " Unexpected"};
+    const char* result_names[] = {" - Success",      " - InputError",
+                                  " - Timeout",      " - InvalidResponse",
+                                  " - CommandError", " - BufferOverflow",
+                                  " - NullPointer",  " - Unexpected"};
     if (MeasurementResult >= 0 && MeasurementResult <= 7) {
       uart0_send_string(result_names[MeasurementResult]);
     } else {
@@ -151,13 +141,13 @@ int main(void) {
     uart0_send_string(sdi12_buffer);  // Send the response to the USB port
     uart0_send_string("\r\n");
 
-    // --- BLINK LOOP ---
+    // --- BLINK ---
     PORTB |= (1 << PB7);  // LED ON
-    delay_ms(20);
+    _delay_ms(20);
     PORTB &= ~(1 << PB7);  // LED OFF
-    delay_ms(20);
+    _delay_ms(20);
+    // --- END BLINK ---
 
     _delay_ms(2000);  // Wait 2 seconds before next iteration
-    // --- END BLINK LOOP ---
   }
 }

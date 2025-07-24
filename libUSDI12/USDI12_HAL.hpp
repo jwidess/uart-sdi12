@@ -56,11 +56,12 @@ class USDI12_HAL {
  * This class provides all hardware-specific operations required by the SDI-12
  * protocol, including UART configuration and GPIO control for TX/RX enable. The
  * UART number (0-3) is selected in the constructor, and all register pointers
- * are set automatically. Use this class with the USDI12 protocol class.
+ * are set automatically. ticks_per_second must be >=1000.0f to ensure proper
+ * timing. Use this class with the USDI12 protocol class.
  *
  * Example usage:
- *   AVR_HAL hal(&SDI12_TX_PORT, (1 << SDI12_TX_PIN), &SDI12_RX_PORT, (1 <<
- * SDI12_RX_PIN), 0); // UART0 USDI12 sdi12(&hal, &system_tick);
+ * AVR_HAL avr_hal(&SDI12_TX_PORT, (1 << SDI12_TX_PIN), &SDI12_RX_PORT, (1 <<
+ * SDI12_RX_PIN), UART_USDI12_NUM, &ms_tick, 1000.0f);
  */
 class AVR_HAL : public USDI12_HAL {
  public:
