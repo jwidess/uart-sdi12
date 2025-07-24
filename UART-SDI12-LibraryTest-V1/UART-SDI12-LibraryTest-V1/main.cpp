@@ -15,6 +15,7 @@
 #define UART_USDI12_NUM 2  // Use UART2 for SDI-12
 
 volatile uint32_t system_tick = 0;
+volatile uint32_t ms_tick = 0;  // Used for 1ms timer
 
 void timer5_init_2s() {
   // Timer5 is 16-bit, max count is 65535
@@ -28,6 +29,22 @@ void timer5_init_2s() {
 }
 
 ISR(TIMER5_COMPA_vect) { system_tick++; }
+
+void timer0_init_1ms() {
+  TCCR0A = (1 << WGM01);               // CTC mode
+  TCCR0B = (1 << CS01) | (1 << CS00);  // Prescaler 64
+  OCR0A = 249;                         // 16MHz/64/250 = 1kHz (1ms)
+  TIMSK0 = (1 << OCIE0A);              // Enable compare match interrupt
+}
+
+ISR(TIMER0_COMPA_vect) { ms_tick++; }
+
+void delay_ms(uint32_t ms) {
+  uint32_t start = ms_tick;
+  while ((ms_tick - start) < ms) {
+    __asm__ __volatile__("");  // Prevent optimization
+  }
+}
 
 //======================================
 // Arduino Mega USB Port Communication
@@ -61,13 +78,10 @@ int main(void) {
   // Pass HAL object to USDI12
   USDI12 sdi12(&avr_hal);
 
-  sdi12.set_rx();  // Initializes DDRs and sets RX mode
-  _delay_ms(500);
-  sdi12.set_tx();  // Switches to TX mode (for testing)
-
   sdi12.begin_uart(F_CPU);
 
   timer5_init_2s();
+  timer0_init_1ms();
   sei();  // Enable global interrupts
 
   DDRB |= (1 << PB7);  // Set PB7 (Arduino Mega 2560 Pin 13) as output (blink)
@@ -76,6 +90,13 @@ int main(void) {
 
   uart0_init(9600);  // USB UART at 9600 baud
   uart0_send_string("\r\nBoot...\r\n");
+
+  for (uint8_t i = 0; i < 6; i++) {
+    sdi12.set_rx();  // RX mode (SEL=1)
+    delay_ms(10);
+    sdi12.set_tx();  // TX mode (SEL=0)
+    delay_ms(10);
+  }
 
   while (1) {
     // sdi12.send_command('0', "M!"); // Send command to SDI-12 device
