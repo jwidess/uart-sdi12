@@ -2,6 +2,7 @@
 #define CONFIG_H
 
 // MCU Configuration
+// This is also defined in Microchip Studio compile symbols
 #define F_CPU 16000000UL
 
 // UART Configuration
