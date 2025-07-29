@@ -54,16 +54,19 @@ bool USDI12::send_command(int8_t address, const char* command) {
   }
 
   _hal->wait_for_tx_complete();
-  set_rx();
   return true;
 }  // END: send_command
 
 bool USDI12::read_response(char* buffer, uint32_t timeout_ms,
                            uint16_t buffer_size) {
-  set_rx();
+  // Flush old data from UART RX buffer
+  while (_hal->uart_data_available()) {
+    (void)_hal->uart_read_byte();
+  }
+  set_rx();  // Once old data is flushed, set RX mode
   if (!buffer || !timeout_ms || buffer_size == 0) return false;
   int idx = 0;
-  uint32_t timeout_ms_margin = timeout_ms + 100;  // Extra 100ms buffer
+  uint32_t timeout_ms_margin = timeout_ms + 10;  // Extra 10ms buffer
   bool got_cr = false;
   // Take current tick and convert to milliseconds
   uint32_t start_ms = get_time_ms();
@@ -95,6 +98,7 @@ bool USDI12::read_response(char* buffer, uint32_t timeout_ms,
 /**
  * @brief Initiates a measurement and retrieves all measurement values from the
  * SDI-12 sensor.
+ * @example get_measurement('0', buffer, sizeof(buffer), 2);
  * @param address SDI-12 address (0-9)
  * @param measurement_number Optional measurement number (0-9), default is 0
  * (standard M command)
@@ -138,18 +142,24 @@ USDI12Result USDI12::get_measurement(uint8_t address, char* result_buffer,
   }
   uint8_t num_values = n;  // Number of values expected
 
-  // Calculate wait_ms based on ttt (seconds until data is ready)
   uint32_t wait_ms = 0;
-  if (ttt == 0 || ttt == 1) {
-    wait_ms = 1000;
-  } else {
+  // Set wait_ms based on ttt (seconds until data is ready)
+  if (ttt > 0) {  // If ttt is greater than 0, we need to wait
     wait_ms = ttt * 1000;
+    // Wait for service request (a<CR><LF>) or timeout
+    char service_req[4] = {0};
+    bool got_service = read_response(service_req, wait_ms, sizeof(service_req));
+
+    if (got_service) {
+      _hal->delay_ms(9);  // If service request, mark for 9ms to avoid problems
+    } else {
+      send_break_mark();  // If no service request (timeout), send break mark
+    }
+  } else if (ttt == 0) {  // No delay, data is immediately available
+    _hal->delay_ms(9);    // Mark for 9ms to avoid problems
   }
 
-  // Wait for service request (a<CR><LF>) or timeout
-  char service_req[4] = {0};
-  bool got_service = read_response(service_req, wait_ms, sizeof(service_req));
-  // After service request or timeout, send Dn! and read values
+  // Send nDn! and read values
   char values[USDI12_BUFFER_SIZE * 2] = {0};
   uint8_t values_received = 0;
   for (uint8_t d = 0; values_received < num_values && d < 10; ++d) {
