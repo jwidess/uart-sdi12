@@ -62,7 +62,7 @@ class USDI12 {
   // ============================
   // SDI-12 Functions
 
-  bool send_break_mark(uint16_t break_ms = 12, uint16_t mark_ms = 9);
+  void send_break_mark(uint16_t break_ms = 12, uint16_t mark_ms = 9);
   /**
    * @brief Send an SDI-12 command to a device.
    * @param address SDI-12 address (0-9), -1 to not send an address (E.g.
@@ -70,7 +70,7 @@ class USDI12 {
    * @param command Command string to send E.g. "M!" (null-terminated)
    * @return true if command sent successfully, false on error
    */
-  bool send_command(int8_t address, const char* command);
+  bool send_command(char address, const char* command);
   // Read response from SDI-12 device with timeout (milliseconds)
   // Returns true if response received, false on timeout
   bool read_response(char* buffer, uint32_t timeout_ms, uint16_t buffer_size);

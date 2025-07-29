@@ -29,7 +29,7 @@ uint32_t USDI12::get_time_ms() const {
   return (uint32_t)(_hal->get_tick() * (1000.0f / _hal->ticks_per_second()));
 }
 
-bool USDI12::send_break_mark(uint16_t break_ms, uint16_t mark_ms) {
+void USDI12::send_break_mark(uint16_t break_ms, uint16_t mark_ms) {
   set_tx();  // Ensure TX mode
   _hal->uart_tx_pin_low();
   _hal->delay_ms(break_ms);
@@ -42,7 +42,7 @@ bool USDI12::begin_uart(uint32_t cpuFreq) { return _hal->begin_uart(cpuFreq); }
 
 void USDI12::uart_send_byte(uint8_t data) { _hal->uart_send_byte(data); }
 
-bool USDI12::send_command(int8_t address, const char* command) {
+bool USDI12::send_command(char address, const char* command) {
   set_tx();
   // Only send address if valid
   if (address >= '0' && address <= '9') {
