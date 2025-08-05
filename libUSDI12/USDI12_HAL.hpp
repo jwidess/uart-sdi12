@@ -74,6 +74,9 @@ class AVR_HAL : public USDI12_HAL {
         _enRxBit(enRxBit),
         _tick_ptr(tick_ptr),
         _ticks_per_second(ticks_per_second) {
+    // DDRx is always PORTx - 1 on AVR
+    _enTxDdr = enTxPort - 1;
+    _enRxDdr = enRxPort - 1;
     // Set UART register pointers, UDRE bit, and TX pin for each UART
     switch (uart_num) {
       case 0:
@@ -135,10 +138,14 @@ class AVR_HAL : public USDI12_HAL {
   }
 
   void set_tx() {
+    *_enTxDdr |= _enTxBit;
+    *_enRxDdr |= _enRxBit;
     *_enTxPort &= ~_enTxBit;
     *_enRxPort &= ~_enRxBit;
   }
   void set_rx() {
+    *_enTxDdr |= _enTxBit;
+    *_enRxDdr |= _enRxBit;
     *_enTxPort |= _enTxBit;
     *_enRxPort |= _enRxBit;
   }
@@ -203,8 +210,10 @@ class AVR_HAL : public USDI12_HAL {
 
  private:
   volatile uint8_t* _enTxPort;
+  volatile uint8_t* _enTxDdr;
   uint8_t _enTxBit;
   volatile uint8_t* _enRxPort;
+  volatile uint8_t* _enRxDdr;
   uint8_t _enRxBit;
   volatile uint8_t* _ucsrNa;   // UCSRnA Control and Status Reg A (DS: 22.10.2)
   volatile uint8_t* _ucsrNb;   // UCSRnB Control and Status Reg B (DS: 22.10.3)
