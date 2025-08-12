@@ -64,8 +64,8 @@ void uart0_send_string(const char* str) {
 
 int main(void) {
   // Instantiate HAL object
-  AVR_HAL avr_hal(&SDI12_TX_PORT, (1 << SDI12_TX_PIN), &SDI12_RX_PORT,
-                  (1 << SDI12_RX_PIN), UART_USDI12_NUM, &ms_tick, 1000.0f);
+  AVR_HAL avr_hal(&SDI12_DIR_PORT, (1 << SDI12_DIR_PIN), UART_USDI12_NUM,
+                  &ms_tick, 1000.0f);
 
   // Pass HAL object to USDI12
   USDI12 sdi12(&avr_hal);

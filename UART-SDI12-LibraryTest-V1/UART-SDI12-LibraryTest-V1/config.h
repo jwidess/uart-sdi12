@@ -9,11 +9,8 @@
 #define UART_USDI12_NUM 2  // Use UART2 for SDI-12
 
 // Pin Definitions
-// - !EN_TX on PH2, EN_RX on PH3
-#define SDI12_TX_PORT PORTH
-// #define SDI12_TX_PIN  PH2
-#define SDI12_TX_PIN PH4  // For testing with Arduino Mega (pin 7)
-#define SDI12_RX_PORT PORTH
-#define SDI12_RX_PIN PH3  // On Arduino Mega this is pin 6
+// Direction control pin
+#define SDI12_DIR_PORT PORTH
+#define SDI12_DIR_PIN PH4  // For testing with Arduino Mega (pin 7)
 
 #endif  // CONFIG_H
