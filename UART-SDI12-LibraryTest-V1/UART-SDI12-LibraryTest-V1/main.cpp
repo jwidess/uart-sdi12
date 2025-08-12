@@ -104,6 +104,7 @@ int main(void) {
     uint8_t B1_AddrResult = 0;
     char B0_ActiveAddress = 255;
     char B1_ActiveAddress = 255;
+    int8_t MeasurementResult = 0;
 
     uart0_send_string("\r\n[B0] Sending BM and Address query...");
     sdi12.send_break_mark();
@@ -151,6 +152,12 @@ int main(void) {
 
     _delay_ms(15);
 
+    // English name of USDI12Result
+    const char* result_names[] = {" - Success",      " - InputError",
+                                  " - Timeout",      " - InvalidResponse",
+                                  " - CommandError", " - BufferOverflow",
+                                  " - NullPointer",  " - Unexpected"};
+
     if (B0_ActiveAddress != 255) {
       sdi12.send_break_mark();
       uart0_send_string("\r\n[B0] Sending Identification Command...\r\n");
@@ -161,30 +168,24 @@ int main(void) {
       uart0_send_string("\r\n");
       memset(sdi12_buffer, 0, sizeof(sdi12_buffer));  // Clear buffer
 
-      /*_delay_ms(15);
-
+      _delay_ms(15);
       // Get measurement from SDI-12 device
-      uart0_send_string("\r\nGet measurement...\r\n");
+      uart0_send_string("\r\n[B0] Get measurement...\r\n");
       sdi12.send_break_mark();
-      int8_t MeasurementResult = sdi12.get_measurement(
-          B0_ActiveAddress, sdi12_buffer, USDI12_BUFFER_SIZE, 2);
-      uart0_send_string("\r\nMeasurement Result: ");
+      MeasurementResult = sdi12.get_measurement(B0_ActiveAddress, sdi12_buffer,
+                                                USDI12_BUFFER_SIZE, 2);
+      uart0_send_string("\r\n[B0] Measurement Result: ");
       uart0_send_char(MeasurementResult + '0');  // Convert to char
       // Print English name of USDI12Result
-      const char* result_names[] = {" - Success",      " - InputError",
-                                    " - Timeout",      " - InvalidResponse",
-                                    " - CommandError", " - BufferOverflow",
-                                    " - NullPointer",  " - Unexpected"};
       if (MeasurementResult >= 0 && MeasurementResult <= 7) {
         uart0_send_string(result_names[MeasurementResult]);
       } else {
         uart0_send_string("Unknown");
       }
       uart0_send_string("\r\n");
-      uart0_send_string("SDI-12 Response: ");
+      uart0_send_string("[B0] SDI-12 Response: ");
       uart0_send_string(sdi12_buffer);  // Send the response to the USB port
       uart0_send_string("\r\n");
-      */
     }
 
     if (B1_ActiveAddress != 255) {
@@ -197,30 +198,24 @@ int main(void) {
       uart0_send_string("\r\n");
       memset(sdi12_buffer, 0, sizeof(sdi12_buffer));  // Clear buffer
 
-      /*_delay_ms(15);
-
+      _delay_ms(15);
       // Get measurement from SDI-12 device
-      uart0_send_string("\r\nGet measurement...\r\n");
-      sdi12.send_break_mark();
-      int8_t MeasurementResult = sdi12.get_measurement(
-          B0_ActiveAddress, sdi12_buffer, USDI12_BUFFER_SIZE, 2);
-      uart0_send_string("\r\nMeasurement Result: ");
+      uart0_send_string("\r\n[B1] Get measurement...\r\n");
+      sdi12_b1.send_break_mark();
+      MeasurementResult = sdi12_b1.get_measurement(
+          B1_ActiveAddress, sdi12_buffer, USDI12_BUFFER_SIZE, 2);
+      uart0_send_string("\r\n[B1] Measurement Result: ");
       uart0_send_char(MeasurementResult + '0');  // Convert to char
       // Print English name of USDI12Result
-      const char* result_names[] = {" - Success",      " - InputError",
-                                    " - Timeout",      " - InvalidResponse",
-                                    " - CommandError", " - BufferOverflow",
-                                    " - NullPointer",  " - Unexpected"};
       if (MeasurementResult >= 0 && MeasurementResult <= 7) {
         uart0_send_string(result_names[MeasurementResult]);
       } else {
         uart0_send_string("Unknown");
       }
       uart0_send_string("\r\n");
-      uart0_send_string("SDI-12 Response: ");
+      uart0_send_string("[B1] SDI-12 Response: ");
       uart0_send_string(sdi12_buffer);  // Send the response to the USB port
       uart0_send_string("\r\n");
-      */
     }
 
     // --- BLINK ---
