@@ -8,7 +8,15 @@
  * ============== UART SDI-12 ==============
  *
  * This is an SDI-12 implementation that uses a UART serial port to communicate
- * with SDI-12 sensors.
+ * with SDI-12 sensors. It features the ability to communicate with upto two
+ * SDI-12 buses using a single UART interface. A single direction pin controls
+ * which bus is being transmitted or received on.
+ *
+ * Example usage:
+ *  USDI12 sdi12_b0(&avr_hal, 0);  // Bus 0
+ *  USDI12 sdi12_b1(&avr_hal, 1);  // Bus 1
+ *  sdi12_b0.send_command(-1, "?!");  // Address query
+ *  sdi12_b1.send_command('0', "I!");  // Identification
  *
  * =========================================
  */
@@ -52,7 +60,7 @@ enum USDI12Result {
 class USDI12 {
  public:
   // HAL-based constructor
-  USDI12(USDI12_HAL* hal);
+  USDI12(USDI12_HAL* hal, uint8_t bus);
 
   // Setup Functions
   void set_tx();                      // Set GPIOs for Transmit mode
@@ -93,6 +101,7 @@ class USDI12 {
 
  private:
   USDI12_HAL* _hal;
+  uint8_t _bus;
   uint32_t get_time_ms() const;
   static const uint16_t SDI12_BAUD_RATE = 1200;
   static const uint8_t SDI12_DATA_BITS = 7;

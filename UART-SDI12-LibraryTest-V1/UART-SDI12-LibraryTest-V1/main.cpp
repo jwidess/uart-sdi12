@@ -68,7 +68,7 @@ int main(void) {
                   &ms_tick, 1000.0f);
 
   // Pass HAL object to USDI12
-  USDI12 sdi12(&avr_hal);
+  USDI12 sdi12(&avr_hal, 1);  // Bus 1
 
   sdi12.begin_uart(F_CPU);
 

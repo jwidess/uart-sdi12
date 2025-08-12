@@ -2,10 +2,14 @@
 /*
  * USDI12_HAL.hpp
  * Hardware Abstraction Layer (HAL) for SDI-12 communication
+ * 
+ * Example Usage:
+ *  AVR_HAL avr_hal(&SDI12_DIR_PORT, (1 << SDI12_DIR_PIN), UART_USDI12_NUM,
+ *  &ms_tick, 1000.0f);
  */
 /**
  * @section mode_control_logic Mode Control Logic
- * | Dir GPIO | Bus 1 (B1) | Bus 2 (B2) |
+ * | Dir GPIO | Bus 0 (B0) | Bus 1 (B1) |
  * | -------- | ---------- | ---------- |
  * | 1        | RX         | TX         |
  * | 0        | TX         | RX         |
@@ -18,8 +22,8 @@
 // Base HAL interface for SDI-12 hardware
 class USDI12_HAL {
  public:
-  virtual void set_tx() = 0;
-  virtual void set_rx() = 0;
+  virtual void dir_low() = 0;
+  virtual void dir_high() = 0;
   virtual bool begin_uart(uint32_t cpuFreq) = 0;
   virtual void uart_send_byte(uint8_t data) = 0;
   virtual bool uart_data_available() = 0;
@@ -126,14 +130,14 @@ class AVR_HAL : public USDI12_HAL {
     }
   }
 
-  // Set direction pin for TX mode (LOW = TX, HIGH = RX, adjust as needed)
-  void set_tx() {
+  // Set direction pin for bus selection
+  void dir_low() {
     *_dirDdr |= _dirBit;
-    *_dirPort &= ~_dirBit;  // Set direction pin LOW for TX
+    *_dirPort &= ~_dirBit;  // Set direction pin LOW
   }
-  void set_rx() {
+  void dir_high() {
     *_dirDdr |= _dirBit;
-    *_dirPort |= _dirBit;  // Set direction pin HIGH for RX
+    *_dirPort |= _dirBit;  // Set direction pin HIGH
   }
 
   bool begin_uart(uint32_t cpuFreq) {
