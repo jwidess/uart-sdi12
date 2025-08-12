@@ -4,20 +4,11 @@
  * Hardware Abstraction Layer (HAL) for SDI-12 communication
  */
 /**
- * @section physical_connections Physical Connections
- * | Signal Name | Connected To           | Functionality                                      |
- * | ----------- | ---------------------- | -------------------------------------------------- |
- * | `!EN_TX`    | - Transceiver: `!OEB`  | Enables transceiver B-side driver (TX when LOW)    |
- * |      |----> | - Analog Switch: `SEL` | Selects TX (LOW) or RX (HIGH) path                 |
- * | `EN_RX`     | - Transceiver: `OEA`   | Enables transceiver A-side receiver (RX when HIGH) |
- * | `!EN`       | - Analog Switch: `!EN` | Always LOW (switch always enabled)                 |
- * 
  * @section mode_control_logic Mode Control Logic
- * | Mode | `!EN_TX` | `EN_RX` | Analog Switch Path | Transceiver Direction      |
- * | ---- | -------- | ------- | ------------------ | -------------------------- |
- * | TX   | `0`      | `0`     | `SEL = 0` → NC→COM | A=IN, B=OUT (TX to SDI-12) |
- * | RX   | `1`      | `1`     | `SEL = 1` → NO→COM | A=OUT, B=IN (SDI-12 to RX) |
- * 
+ * | Dir GPIO | Bus 1 (B1) | Bus 2 (B2) |
+ * | -------- | ---------- | ---------- |
+ * | 1        | RX         | TX         |
+ * | 0        | TX         | RX         |
  */
 // clang-format on
 
@@ -45,6 +36,7 @@ class USDI12_HAL {
 
 // =============================
 // AVR_HAL: AVR SDI-12 Hardware Abstraction Layer
+
 #ifdef __AVR__
 #include <avr/io.h>
 
@@ -54,29 +46,26 @@ class USDI12_HAL {
  * microcontrollers
  *
  * This class provides all hardware-specific operations required by the SDI-12
- * protocol, including UART configuration and GPIO control for TX/RX enable. The
- * UART number (0-3) is selected in the constructor, and all register pointers
- * are set automatically. ticks_per_second must be >=1000.0f to ensure proper
- * timing. Use this class with the USDI12 protocol class.
+ * protocol, including UART configuration and GPIO control for TX/RX direction
+ * using a single direction pin. The UART number (0-3) is selected in the
+ * constructor, and all register pointers are set automatically.
+ * ticks_per_second must be >=1000.0f to ensure proper timing. Use this class
+ * with the USDI12 protocol class.
  *
  * Example usage:
- * AVR_HAL avr_hal(&SDI12_TX_PORT, (1 << SDI12_TX_PIN), &SDI12_RX_PORT, (1 <<
- * SDI12_RX_PIN), UART_USDI12_NUM, &ms_tick, 1000.0f);
+ * AVR_HAL avr_hal(&SDI12_DIR_PORT, (1 << SDI12_DIR_PIN), UART_USDI12_NUM,
+ * &ms_tick, 1000.0f);
  */
 class AVR_HAL : public USDI12_HAL {
  public:
-  AVR_HAL(volatile uint8_t* enTxPort, uint8_t enTxBit,
-          volatile uint8_t* enRxPort, uint8_t enRxBit, uint8_t uart_num,
+  AVR_HAL(volatile uint8_t* dirPort, uint8_t dirBit, uint8_t uart_num,
           volatile uint32_t* tick_ptr, float ticks_per_second)
-      : _enTxPort(enTxPort),
-        _enTxBit(enTxBit),
-        _enRxPort(enRxPort),
-        _enRxBit(enRxBit),
+      : _dirPort(dirPort),
+        _dirBit(dirBit),
         _tick_ptr(tick_ptr),
         _ticks_per_second(ticks_per_second) {
-    // DDRx is always PORTx - 1 on AVR
-    _enTxDdr = enTxPort - 1;
-    _enRxDdr = enRxPort - 1;
+    // DDRx is always PORTx - 1 on AVR | 33. Register Summary (DS: 33)
+    _dirDdr = dirPort - 1;
     // Set UART register pointers, UDRE bit, and TX pin for each UART
     switch (uart_num) {
       case 0:
@@ -137,17 +126,14 @@ class AVR_HAL : public USDI12_HAL {
     }
   }
 
+  // Set direction pin for TX mode (LOW = TX, HIGH = RX, adjust as needed)
   void set_tx() {
-    *_enTxDdr |= _enTxBit;
-    *_enRxDdr |= _enRxBit;
-    *_enTxPort &= ~_enTxBit;
-    *_enRxPort &= ~_enRxBit;
+    *_dirDdr |= _dirBit;
+    *_dirPort &= ~_dirBit;  // Set direction pin LOW for TX
   }
   void set_rx() {
-    *_enTxDdr |= _enTxBit;
-    *_enRxDdr |= _enRxBit;
-    *_enTxPort |= _enTxBit;
-    *_enRxPort |= _enRxBit;
+    *_dirDdr |= _dirBit;
+    *_dirPort |= _dirBit;  // Set direction pin HIGH for RX
   }
 
   bool begin_uart(uint32_t cpuFreq) {
@@ -209,12 +195,9 @@ class AVR_HAL : public USDI12_HAL {
   }
 
  private:
-  volatile uint8_t* _enTxPort;
-  volatile uint8_t* _enTxDdr;
-  uint8_t _enTxBit;
-  volatile uint8_t* _enRxPort;
-  volatile uint8_t* _enRxDdr;
-  uint8_t _enRxBit;
+  volatile uint8_t* _dirPort;
+  volatile uint8_t* _dirDdr;
+  uint8_t _dirBit;
   volatile uint8_t* _ucsrNa;   // UCSRnA Control and Status Reg A (DS: 22.10.2)
   volatile uint8_t* _ucsrNb;   // UCSRnB Control and Status Reg B (DS: 22.10.3)
   volatile uint8_t* _ucsrNc;   // UCSRnC Control and Status Reg C (DS: 22.10.4)
