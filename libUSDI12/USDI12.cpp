@@ -19,11 +19,20 @@
 #include <stdio.h>   // For snprintf, sscanf
 #include <string.h>  // For strncat, strncpy
 
-USDI12::USDI12(USDI12_HAL* hal) : _hal(hal) {}
+USDI12::USDI12(USDI12_HAL* hal, uint8_t bus) : _hal(hal), _bus(bus) {}
 
-void USDI12::set_tx() { _hal->set_tx(); }
-
-void USDI12::set_rx() { _hal->set_rx(); }
+void USDI12::set_tx() {
+  if (_bus == 0)
+    _hal->dir_low();  // TX for bus 0
+  else
+    _hal->dir_high();  // TX for bus 1
+}
+void USDI12::set_rx() {
+  if (_bus == 0)
+    _hal->dir_high();  // RX for bus 0
+  else
+    _hal->dir_low();  // RX for bus 1
+}
 
 uint32_t USDI12::get_time_ms() const {
   return (uint32_t)(_hal->get_tick() * (1000.0f / _hal->ticks_per_second()));
