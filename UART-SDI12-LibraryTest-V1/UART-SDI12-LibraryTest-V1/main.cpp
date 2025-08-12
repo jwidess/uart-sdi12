@@ -94,42 +94,49 @@ int main(void) {
   // ==========================================================================
 
   while (1) {
-    uart0_send_string("\r\nSending break and mark...");
-    sdi12.send_break_mark();
-    sdi12.send_command(-1, "?!");  // Address query
-    uint8_t AddrResult =
-        sdi12.read_response(sdi12_buffer, 100, USDI12_BUFFER_SIZE);
-    uart0_send_string("\r\nSDI-12 Address Query: ");
-    int8_t ActiveAddress = -1;
-    if (AddrResult) {
-      uart0_send_string("Success, Address: ");
-      ActiveAddress = sdi12_buffer[0];
-      uart0_send_char(ActiveAddress);  // Send the addr to the USB port
-
-      if (0) {  // Used for testing address change
-        // Check if the received address is '0'
-        if (sdi12_buffer[0] == '0' && sdi12_buffer[1] == '\0') {
-          uart0_send_string(
-              "\r\nAddress is 0, sending change address to 5...\r\n");
-          // SDI-12 change address command: aAb!
-          sdi12.send_break_mark();
-          sdi12.send_command('0', "A5!");
+    char ActiveAddress = 0;
+    if (1) {
+      uart0_send_string("\r\nSending break and mark...");
+      sdi12.send_break_mark();
+      sdi12.send_command(-1, "?!");  // Address query
+      uint8_t AddrResult =
           sdi12.read_response(sdi12_buffer, 100, USDI12_BUFFER_SIZE);
-          uart0_send_string("Change address response: ");
-          uart0_send_string(sdi12_buffer);
-          uart0_send_string("\r\n");
+      uart0_send_string("\r\nSDI-12 Address Query: ");
+      if (AddrResult) {
+        uart0_send_string("Success, Address: ");
+        ActiveAddress = sdi12_buffer[0];
+        uart0_send_char(ActiveAddress);  // Send the addr to the USB port
+
+        if (0) {  // Used for testing address change
+          // Check if the received address is '0'
+          if (sdi12_buffer[0] == '0' && sdi12_buffer[1] == '\0') {
+            uart0_send_string(
+                "\r\nAddress is 0, sending change address to 5...\r\n");
+            // SDI-12 change address command: aAb!
+            sdi12.send_break_mark();
+            sdi12.send_command('0', "A5!");
+            sdi12.read_response(sdi12_buffer, 100, USDI12_BUFFER_SIZE);
+            uart0_send_string("Change address response: ");
+            uart0_send_string(sdi12_buffer);
+            uart0_send_string("\r\n");
+          }
         }
+      } else {
+        uart0_send_string("FAIL or No Address");
       }
     } else {
-      uart0_send_string("FAIL or No Address");
+      ActiveAddress = '0';
     }
+
     uart0_send_string("\r\n");
     memset(sdi12_buffer, 0, sizeof(sdi12_buffer));  // Clear buffer
 
     _delay_ms(15);
 
     sdi12.send_break_mark();
-    uart0_send_string("\r\nSending Identification Command...\r\n");
+    uart0_send_string("\r\nSending Identification Command to Address: ");
+    uart0_send_char(ActiveAddress);  // Send the addr to the USB port
+    uart0_send_string("\r\n");
     sdi12.send_command(ActiveAddress, "I!");  // Identification command
     sdi12.read_response(sdi12_buffer, 1000, USDI12_BUFFER_SIZE);
     uart0_send_string("ID Success: ");
