@@ -79,9 +79,25 @@ class USDI12 {
    * @return true if command sent successfully, false on error
    */
   bool send_command(char address, const char* command);
-  // Read response from SDI-12 device with timeout (milliseconds)
-  // Returns true if response received, false on timeout
-  bool read_response(char* buffer, uint32_t timeout_ms, uint16_t buffer_size);
+
+  /**
+   * @brief Reads a response from the SDI-12 device with a specified timeout.
+   * This function waits for a response from the SDI-12 sensor, reading
+   * characters into the provided buffer until a CRLF sequence is received, the
+   * buffer is full, or the timeout expires.
+   *
+   * @param buffer Pointer to the character array to store the response
+   * (null-terminated).
+   * @param timeout_ms Timeout in milliseconds to wait for a response.
+   * @param buffer_size Size of the response buffer (including null terminator).
+   * @return USDI12Result enum indicating result or error type:
+   *         - USDI12Result_Success: valid response received
+   *         - USDI12Result_Timeout: timeout occurred
+   *         - USDI12Result_BufferOverflow: buffer full before CRLF
+   *         - USDI12Result_NullPointer: buffer is null or size is zero
+   */
+  USDI12Result read_response(char* buffer, uint32_t timeout_ms,
+                             uint16_t buffer_size);
   void uart_send_byte(uint8_t data);
 
   /**

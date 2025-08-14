@@ -66,14 +66,14 @@ bool USDI12::send_command(char address, const char* command) {
   return true;
 }  // END: send_command
 
-bool USDI12::read_response(char* buffer, uint32_t timeout_ms,
-                           uint16_t buffer_size) {
+USDI12Result USDI12::read_response(char* buffer, uint32_t timeout_ms,
+                                   uint16_t buffer_size) {
   // Flush old data from UART RX buffer
   while (_hal->uart_data_available()) {
     (void)_hal->uart_read_byte();
   }
   set_rx();  // Once old data is flushed, set RX mode
-  if (!buffer || !timeout_ms || buffer_size == 0) return false;
+  if (!buffer || buffer_size == 0) return USDI12Result_NullPointer;
   int idx = 0;
   uint32_t timeout_ms_margin = timeout_ms + 10;  // Extra 10ms buffer
   bool got_cr = false;
@@ -88,20 +88,23 @@ bool USDI12::read_response(char* buffer, uint32_t timeout_ms,
         if (idx > 0 && buffer[idx - 1] == '\r') {
           buffer[idx - 1] = '\0';
         }
-        return true;  // Success: got CRLF
+        return USDI12Result_Success;  // Success: got CRLF
       }
       if (c != '\r') {
         if (idx < max_len) {
           buffer[idx] = c;  // Store it in the buffer (skip CR)
           idx++;
+        } else {
+          // Buffer full before CRLF
+          buffer[max_len] = '\0';
+          return USDI12Result_BufferOverflow;
         }
-        // If idx >= max_len, discard extra chars to avoid overrun
       }
       got_cr = (c == '\r');  // Check if current char is CR
     }
   }
   buffer[(idx < max_len) ? idx : max_len] = '\0';
-  return false;  // Timeout or buffer full
+  return USDI12Result_Timeout;  // Timeout or buffer full
 }  // END: read_response
 
 /**
@@ -157,9 +160,10 @@ USDI12Result USDI12::get_measurement(uint8_t address, char* result_buffer,
     wait_ms = ttt * 1000;
     // Wait for service request (a<CR><LF>) or timeout
     char service_req[4] = {0};
-    bool got_service = read_response(service_req, wait_ms, sizeof(service_req));
+    USDI12Result got_service =
+        read_response(service_req, wait_ms, sizeof(service_req));
 
-    if (got_service) {
+    if (got_service == USDI12Result_Success) {
       _hal->delay_ms(9);  // If service request, mark for 9ms to avoid problems
     } else {
       send_break_mark();  // If no service request (timeout), send break mark
@@ -178,7 +182,8 @@ USDI12Result USDI12::get_measurement(uint8_t address, char* result_buffer,
       return USDI12Result_CommandError;
     }
     char d_response[USDI12_BUFFER_SIZE] = {0};
-    if (!read_response(d_response, defTimeoutMs, USDI12_BUFFER_SIZE)) {
+    if (read_response(d_response, defTimeoutMs, USDI12_BUFFER_SIZE) !=
+        USDI12Result_Success) {
       return USDI12Result_CommandError;
     }
     // Skip address char, append rest to values
