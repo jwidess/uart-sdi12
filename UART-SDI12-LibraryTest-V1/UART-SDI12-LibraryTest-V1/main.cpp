@@ -62,6 +62,19 @@ void uart0_send_string(const char* str) {
 }
 // ============================================================================
 
+void test_dir_toggle(USDI12& sdi12, USDI12& sdi12_b1) {
+  for (uint8_t i = 0; i < 4; i++) {
+    sdi12.set_rx();
+    _delay_ms(1);
+    sdi12.set_tx();
+    _delay_ms(1);
+    sdi12_b1.set_rx();
+    _delay_ms(1);
+    sdi12_b1.set_tx();
+    _delay_ms(1);
+  }
+}
+
 int main(void) {
   // Instantiate HAL object
   AVR_HAL avr_hal(&SDI12_DIR_PORT, (1 << SDI12_DIR_PIN), UART_USDI12_NUM,
@@ -87,48 +100,40 @@ int main(void) {
   uart0_init(115200);  // USB UART
   uart0_send_string("\r\nBoot...\r\n");
 
-  for (uint8_t i = 0; i < 6; i++) {  // Toggle SEL Line for testing
-    sdi12.set_rx();                  // RX mode (SEL=1)
-    _delay_ms(10);
-    sdi12.set_tx();  // TX mode (SEL=0)
-    _delay_ms(10);
-    sdi12_b1.set_rx();
-    _delay_ms(10);
-    sdi12_b1.set_tx();
-    _delay_ms(10);
-  }
+  test_dir_toggle(sdi12, sdi12_b1);
   // ==========================================================================
 
   while (1) {
-    uint8_t B0_AddrResult = 0;
-    uint8_t B1_AddrResult = 0;
+    uint8_t B0_AddrRes = 0;
+    uint8_t B1_AddrRes = 0;
     char B0_ActiveAddress = 255;
     char B1_ActiveAddress = 255;
     int8_t MeasurementResult = 0;
 
+    test_dir_toggle(sdi12, sdi12_b1);
+
     uart0_send_string("\r\n[B0] Sending BM and Address query...");
     sdi12.send_break_mark();
     sdi12.send_command(-1, "?!");  // Address query
-    B0_AddrResult = sdi12.read_response(sdi12_buffer, 100, USDI12_BUFFER_SIZE);
-    if (B0_AddrResult > 0) B0_ActiveAddress = sdi12_buffer[0];
-    if (B0_ActiveAddress == 255) {
-      uart0_send_string("\r\n[B0] No address found...");
-    } else {
+    B0_AddrRes = sdi12.read_response(sdi12_buffer, 100, USDI12_BUFFER_SIZE);
+    if (B0_AddrRes == USDI12Result_Success) {
+      B0_ActiveAddress = sdi12_buffer[0];
       uart0_send_string("\r\n[B0] Address: ");
       uart0_send_char(B0_ActiveAddress);
+    } else {
+      uart0_send_string("\r\n[B0] No address found, or other error...");
     }
 
     uart0_send_string("\r\n[B1] Sending BM and Address query...");
     sdi12_b1.send_break_mark();
     sdi12_b1.send_command(-1, "?!");  // Address query
-    B1_AddrResult =
-        sdi12_b1.read_response(sdi12_buffer, 100, USDI12_BUFFER_SIZE);
-    if (B1_AddrResult > 0) B1_ActiveAddress = sdi12_buffer[0];
-    if (B1_ActiveAddress == 255) {
-      uart0_send_string("\r\n[B1] No address found...");
-    } else {
+    B1_AddrRes = sdi12_b1.read_response(sdi12_buffer, 100, USDI12_BUFFER_SIZE);
+    if (B1_AddrRes == USDI12Result_Success) {
+      B1_ActiveAddress = sdi12_buffer[0];
       uart0_send_string("\r\n[B1] Address: ");
       uart0_send_char(B1_ActiveAddress);
+    } else {
+      uart0_send_string("\r\n[B1] No address found, or other error...");
     }
 
     if (0) {  // Used for testing address change
@@ -162,7 +167,7 @@ int main(void) {
       sdi12.send_break_mark();
       uart0_send_string("\r\n[B0] Sending Identification Command...\r\n");
       sdi12.send_command(B0_ActiveAddress, "I!");  // Identification command
-      sdi12.read_response(sdi12_buffer, 1000, USDI12_BUFFER_SIZE);
+      sdi12.read_response(sdi12_buffer, 200, USDI12_BUFFER_SIZE);
       uart0_send_string("[B0] ID: ");
       uart0_send_string(sdi12_buffer);  // Send the response to the USB port
       uart0_send_string("\r\n");
@@ -170,10 +175,10 @@ int main(void) {
 
       _delay_ms(15);
       // Get measurement from SDI-12 device
-      uart0_send_string("\r\n[B0] Get measurement...\r\n");
+      uart0_send_string("\r\n[B0] Get measurement...");
       sdi12.send_break_mark();
       MeasurementResult = sdi12.get_measurement(B0_ActiveAddress, sdi12_buffer,
-                                                USDI12_BUFFER_SIZE, 2);
+                                                USDI12_BUFFER_SIZE);
       uart0_send_string("\r\n[B0] Measurement Result: ");
       uart0_send_char(MeasurementResult + '0');  // Convert to char
       // Print English name of USDI12Result
@@ -192,7 +197,7 @@ int main(void) {
       sdi12_b1.send_break_mark();
       uart0_send_string("\r\n[B1] Sending Identification Command...\r\n");
       sdi12_b1.send_command(B1_ActiveAddress, "I!");  // Identification command
-      sdi12_b1.read_response(sdi12_buffer, 1000, USDI12_BUFFER_SIZE);
+      sdi12_b1.read_response(sdi12_buffer, 200, USDI12_BUFFER_SIZE);
       uart0_send_string("[B1] ID: ");
       uart0_send_string(sdi12_buffer);  // Send the response to the USB port
       uart0_send_string("\r\n");
@@ -200,7 +205,7 @@ int main(void) {
 
       _delay_ms(15);
       // Get measurement from SDI-12 device
-      uart0_send_string("\r\n[B1] Get measurement...\r\n");
+      uart0_send_string("\r\n[B1] Get measurement...");
       sdi12_b1.send_break_mark();
       MeasurementResult = sdi12_b1.get_measurement(
           B1_ActiveAddress, sdi12_buffer, USDI12_BUFFER_SIZE, 2);
@@ -226,6 +231,7 @@ int main(void) {
     // --- END BLINK ---
 
     uart0_send_string("=== End ===\r\n");
+    test_dir_toggle(sdi12, sdi12_b1);
     _delay_ms(3000);  // Wait 3 seconds before next iteration
   }
 }
