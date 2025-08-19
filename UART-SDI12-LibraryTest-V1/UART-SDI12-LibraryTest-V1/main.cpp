@@ -157,17 +157,20 @@ int main(void) {
 
     _delay_ms(15);
 
-    // English name of USDI12Result
-    const char* result_names[] = {" - Success",      " - InputError",
-                                  " - Timeout",      " - InvalidResponse",
-                                  " - CommandError", " - BufferOverflow",
-                                  " - NullPointer",  " - Unexpected"};
-
     if (B0_ActiveAddress != 255) {
       sdi12.send_break_mark();
       uart0_send_string("\r\n[B0] Sending Identification Command...\r\n");
       sdi12.send_command(B0_ActiveAddress, "I!");  // Identification command
-      sdi12.read_response(sdi12_buffer, 200, USDI12_BUFFER_SIZE);
+      USDI12Result resp_result =
+          sdi12.read_response(sdi12_buffer, 200, USDI12_BUFFER_SIZE);
+      uart0_send_string("[B0] read_response result: ");
+      if (resp_result >= 0 && resp_result <= 7) {
+        uart0_send_char(resp_result + '0');  // Convert to char
+        uart0_send_string(USDI12ResultNames[resp_result]);
+      } else {
+        uart0_send_string("Unknown");
+      }
+      uart0_send_string("\r\n");
       uart0_send_string("[B0] ID: ");
       uart0_send_string(sdi12_buffer);  // Send the response to the USB port
       uart0_send_string("\r\n");
@@ -183,7 +186,7 @@ int main(void) {
       uart0_send_char(MeasurementResult + '0');  // Convert to char
       // Print English name of USDI12Result
       if (MeasurementResult >= 0 && MeasurementResult <= 7) {
-        uart0_send_string(result_names[MeasurementResult]);
+        uart0_send_string(USDI12ResultNames[MeasurementResult]);
       } else {
         uart0_send_string("Unknown");
       }
@@ -197,7 +200,16 @@ int main(void) {
       sdi12_b1.send_break_mark();
       uart0_send_string("\r\n[B1] Sending Identification Command...\r\n");
       sdi12_b1.send_command(B1_ActiveAddress, "I!");  // Identification command
-      sdi12_b1.read_response(sdi12_buffer, 200, USDI12_BUFFER_SIZE);
+      USDI12Result resp_result =
+          sdi12_b1.read_response(sdi12_buffer, 200, USDI12_BUFFER_SIZE);
+      uart0_send_string("[B1] read_response result: ");
+      if (resp_result >= 0 && resp_result <= 7) {
+        uart0_send_char(resp_result + '0');  // Convert to char
+        uart0_send_string(USDI12ResultNames[resp_result]);
+      } else {
+        uart0_send_string("Unknown");
+      }
+      uart0_send_string("\r\n");
       uart0_send_string("[B1] ID: ");
       uart0_send_string(sdi12_buffer);  // Send the response to the USB port
       uart0_send_string("\r\n");
@@ -213,7 +225,7 @@ int main(void) {
       uart0_send_char(MeasurementResult + '0');  // Convert to char
       // Print English name of USDI12Result
       if (MeasurementResult >= 0 && MeasurementResult <= 7) {
-        uart0_send_string(result_names[MeasurementResult]);
+        uart0_send_string(USDI12ResultNames[MeasurementResult]);
       } else {
         uart0_send_string("Unknown");
       }
