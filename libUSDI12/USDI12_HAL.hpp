@@ -160,6 +160,7 @@ class AVR_HAL : public USDI12_HAL {
     *_udrN = data;
   }
 
+  // Check RXCn: USART Receive Complete (DS: 22.10.2)
   bool uart_data_available() { return (*_ucsrNa & (1 << 7)); }
 
   uint8_t uart_read_byte() { return *_udrN; }

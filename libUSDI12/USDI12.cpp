@@ -21,6 +21,27 @@
 
 USDI12::USDI12(USDI12_HAL* hal, uint8_t bus) : _hal(hal), _bus(bus) {}
 
+/**
+ * @brief Waits for the SDI-12 bus to become idle for up to timeout_ms
+ * milliseconds. Returns true if bus is idle, false if timeout occurs.
+ */
+USDI12Result USDI12::wait_bus_idle(uint32_t timeout_ms) {
+  uint32_t start_ms = get_time_ms();
+  uint32_t last_rx_ms = get_time_ms();
+  set_rx();
+  while ((get_time_ms() - start_ms) < timeout_ms) {
+    while (_hal->uart_data_available()) {
+      (void)_hal->uart_read_byte();
+      last_rx_ms = get_time_ms();
+    }
+    // If no data received for at least 11 ms, bus is idle (8.33ms + tolerance)
+    if ((get_time_ms() - last_rx_ms) >= 11) {
+      return USDI12Result_Success;
+    }
+  }
+  return USDI12Result_Timeout;
+}
+
 void USDI12::set_tx() {
   if (_bus == 0)
     _hal->dir_low();  // TX for bus 0
@@ -39,7 +60,8 @@ uint32_t USDI12::get_time_ms() const {
 }
 
 void USDI12::send_break_mark(uint16_t break_ms, uint16_t mark_ms) {
-  set_tx();  // Ensure TX mode
+  wait_bus_idle();  // Before sending break mark, wait for bus idle.
+  set_tx();         // Ensure TX mode
   _hal->uart_tx_pin_low();
   _hal->delay_ms(break_ms);
   _hal->uart_tx_pin_high();
@@ -51,7 +73,7 @@ bool USDI12::begin_uart(uint32_t cpuFreq) { return _hal->begin_uart(cpuFreq); }
 
 void USDI12::uart_send_byte(uint8_t data) { _hal->uart_send_byte(data); }
 
-bool USDI12::send_command(char address, const char* command) {
+USDI12Result USDI12::send_command(char address, const char* command) {
   set_tx();
   // Only send address if valid
   if (address >= '0' && address <= '9') {
@@ -63,7 +85,7 @@ bool USDI12::send_command(char address, const char* command) {
   }
 
   _hal->wait_for_tx_complete();
-  return true;
+  return USDI12Result_Success;
 }  // END: send_command
 
 USDI12Result USDI12::read_response(char* buffer, uint32_t timeout_ms,
@@ -104,7 +126,7 @@ USDI12Result USDI12::read_response(char* buffer, uint32_t timeout_ms,
     }
   }
   buffer[(idx < max_len) ? idx : max_len] = '\0';
-  return USDI12Result_Timeout;  // Timeout or buffer full
+  return USDI12Result_Timeout;  // Timeout
 }  // END: read_response
 
 /**
@@ -136,10 +158,16 @@ USDI12Result USDI12::get_measurement(uint8_t address, char* result_buffer,
   } else if (measurement_number == -1) {
     snprintf(cmd, sizeof(cmd), "%cM!", address);
   }
-  if (!send_command(address, cmd + 1)) {  // Skip address char
-    return USDI12Result_CommandError;
+  USDI12Result cmd_result =
+      send_command(address, cmd + 1);  // Skip address char
+  if (cmd_result != USDI12Result_Success) {
+    return cmd_result;
   }
-  read_response(response, defTimeoutMs, USDI12_BUFFER_SIZE);
+  USDI12Result resp_result =
+      read_response(response, defTimeoutMs, USDI12_BUFFER_SIZE);
+  if (resp_result != USDI12Result_Success) {
+    return resp_result;
+  }
 
   // Response: atttn<CR><LF> (a=address, ttt=time, n=number of values)
   // Example: 10112<CR><LF> (1=address, 011=11s, 2=2 values)
@@ -178,13 +206,16 @@ USDI12Result USDI12::get_measurement(uint8_t address, char* result_buffer,
   for (uint8_t d = 0; values_received < num_values && d < 10; ++d) {
     char d_cmd[6] = {0};
     snprintf(d_cmd, sizeof(d_cmd), "%cD%u!", address, d);
-    if (!send_command(address, d_cmd + 1)) {  // Skip address char
-      return USDI12Result_CommandError;
+    USDI12Result dcmd_result =
+        send_command(address, d_cmd + 1);  // Skip address char
+    if (dcmd_result != USDI12Result_Success) {
+      return dcmd_result;
     }
     char d_response[USDI12_BUFFER_SIZE] = {0};
-    if (read_response(d_response, defTimeoutMs, USDI12_BUFFER_SIZE) !=
-        USDI12Result_Success) {
-      return USDI12Result_CommandError;
+    USDI12Result dresp_result =
+        read_response(d_response, defTimeoutMs, USDI12_BUFFER_SIZE);
+    if (dresp_result != USDI12Result_Success) {
+      return dresp_result;
     }
     // Skip address char, append rest to values
     char* val_start = d_response;

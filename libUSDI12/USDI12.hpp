@@ -45,7 +45,11 @@
 #define USDI12_BUFFER_SIZE 82  // 81 chars + null terminator
 #endif
 
-// SDI-12 result codes for get_measurement (C++03 compatible)
+/**
+ * @brief Result codes for SDI-12 operations.
+ * 0=Success, 1=InputError, 2=Timeout, 3=InvalidResponse, 4=CommandError,
+ * 5=BufferOverflow, 6=NullPointer, 7=Unexpected
+ */
 enum USDI12Result {
   USDI12Result_Success = 0,
   USDI12Result_InputError,       // 1
@@ -56,6 +60,13 @@ enum USDI12Result {
   USDI12Result_NullPointer,      // 6
   USDI12Result_Unexpected        // 7
 };
+
+/**
+ * @brief Human-readable names for USDI12Result values.
+ */
+static const char* USDI12ResultNames[] = {
+    "Success",      "InputError",     "Timeout",     "InvalidResponse",
+    "CommandError", "BufferOverflow", "NullPointer", "Unexpected"};
 
 class USDI12 {
  public:
@@ -71,6 +82,7 @@ class USDI12 {
   // SDI-12 Functions
 
   void send_break_mark(uint16_t break_ms = 12, uint16_t mark_ms = 9);
+
   /**
    * @brief Send an SDI-12 command to a device.
    * @param address SDI-12 address (0-9), -1 to not send an address (E.g.
@@ -78,7 +90,7 @@ class USDI12 {
    * @param command Command string to send E.g. "M!" (null-terminated)
    * @return true if command sent successfully, false on error
    */
-  bool send_command(char address, const char* command);
+  USDI12Result send_command(char address, const char* command);
 
   /**
    * @brief Reads a response from the SDI-12 device with a specified timeout.
@@ -98,6 +110,7 @@ class USDI12 {
    */
   USDI12Result read_response(char* buffer, uint32_t timeout_ms,
                              uint16_t buffer_size);
+
   void uart_send_byte(uint8_t data);
 
   /**
@@ -114,6 +127,14 @@ class USDI12 {
   USDI12Result get_measurement(uint8_t address, char* result_buffer,
                                uint16_t buffer_size,
                                int8_t measurement_number = -1);
+
+  /**
+   * @brief Waits for the SDI-12 bus to become idle (no data available) for up
+   * to timeout_ms milliseconds. Returns true if bus is idle, false if timeout
+   * occurs.
+   * @param timeout_ms DEFAULT = 100ms - Maximum time to wait for bus idle (ms)
+   */
+  USDI12Result wait_bus_idle(uint32_t timeout_ms = 100);
 
  private:
   USDI12_HAL* _hal;
