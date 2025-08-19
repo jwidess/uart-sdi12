@@ -34,7 +34,7 @@ USDI12Result USDI12::wait_bus_idle(uint32_t timeout_ms) {
       (void)_hal->uart_read_byte();
       last_rx_ms = get_time_ms();
     }
-    // If no data received for at least 11 ms, bus is idle
+    // If no data received for at least 11 ms, bus is idle (8.33ms + tolerance)
     if ((get_time_ms() - last_rx_ms) >= 11) {
       return USDI12Result_Success;
     }
@@ -43,7 +43,6 @@ USDI12Result USDI12::wait_bus_idle(uint32_t timeout_ms) {
 }
 
 void USDI12::set_tx() {
-  wait_bus_idle();  // Check for bus contention before switching to TX
   if (_bus == 0)
     _hal->dir_low();  // TX for bus 0
   else
@@ -61,7 +60,8 @@ uint32_t USDI12::get_time_ms() const {
 }
 
 void USDI12::send_break_mark(uint16_t break_ms, uint16_t mark_ms) {
-  set_tx();  // Ensure TX mode
+  wait_bus_idle();  // Before sending break mark, wait for bus idle.
+  set_tx();         // Ensure TX mode
   _hal->uart_tx_pin_low();
   _hal->delay_ms(break_ms);
   _hal->uart_tx_pin_high();
