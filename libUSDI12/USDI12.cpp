@@ -19,6 +19,16 @@
 #include <stdio.h>   // For snprintf, sscanf
 #include <string.h>  // For strncat, strncpy
 
+// Threshold time without RX data to consider bus idle (8.33ms + tolerance)
+#define USDI12_BUS_IDLE_THRESHOLD_MS 11
+
+/**
+ * @brief Human-readable names for USDI12Result enum values.
+ */
+const char* USDI12ResultNames[] = {
+    "Success",      "InputError",     "Timeout",     "InvalidResponse",
+    "CommandError", "BufferOverflow", "NullPointer", "Unexpected"};
+
 USDI12::USDI12(USDI12_HAL* hal, uint8_t bus) : _hal(hal), _bus(bus) {}
 
 /**
@@ -34,8 +44,8 @@ USDI12Result USDI12::wait_bus_idle(uint32_t timeout_ms) {
       (void)_hal->uart_read_byte();
       last_rx_ms = get_time_ms();
     }
-    // If no data received for at least 11 ms, bus is idle (8.33ms + tolerance)
-    if ((get_time_ms() - last_rx_ms) >= 11) {
+    // If no data RXd for at least USDI12_BUS_IDLE_THRESHOLD_MS, bus is idle
+    if ((get_time_ms() - last_rx_ms) >= USDI12_BUS_IDLE_THRESHOLD_MS) {
       return USDI12Result_Success;
     }
   }

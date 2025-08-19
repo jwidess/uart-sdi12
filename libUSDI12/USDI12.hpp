@@ -62,11 +62,9 @@ enum USDI12Result {
 };
 
 /**
- * @brief Human-readable names for USDI12Result values.
+ * @brief Human-readable names for USDI12Result enum values.
  */
-static const char* USDI12ResultNames[] = {
-    "Success",      "InputError",     "Timeout",     "InvalidResponse",
-    "CommandError", "BufferOverflow", "NullPointer", "Unexpected"};
+extern const char* USDI12ResultNames[];
 
 class USDI12 {
  public:
