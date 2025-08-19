@@ -61,6 +61,13 @@ enum USDI12Result {
   USDI12Result_Unexpected        // 7
 };
 
+/**
+ * @brief Human-readable names for USDI12Result values.
+ */
+static const char* USDI12ResultNames[] = {
+    "Success",      "InputError",     "Timeout",     "InvalidResponse",
+    "CommandError", "BufferOverflow", "NullPointer", "Unexpected"};
+
 class USDI12 {
  public:
   // HAL-based constructor
