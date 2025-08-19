@@ -103,6 +103,9 @@ int main(void) {
   test_dir_toggle(sdi12, sdi12_b1);
   // ==========================================================================
 
+  // Use constant for number of USDI12Result values
+  const int numResults = USDI12_RESULT_COUNT;
+
   while (1) {
     uint8_t B0_AddrRes = 0;
     uint8_t B1_AddrRes = 0;
@@ -162,10 +165,9 @@ int main(void) {
       uart0_send_string("\r\n[B0] Sending Identification Command...\r\n");
       sdi12.send_command(B0_ActiveAddress, "I!");  // Identification command
       USDI12Result resp_result =
-          sdi12.read_response(sdi12_buffer, 200, USDI12_BUFFER_SIZE);
+          sdi12.read_response(sdi12_buffer, 300, USDI12_BUFFER_SIZE);
       uart0_send_string("[B0] read_response result: ");
-      if (resp_result >= 0 && resp_result <= 7) {
-        uart0_send_char(resp_result + '0');  // Convert to char
+      if (resp_result >= 0 && resp_result < numResults) {
         uart0_send_string(USDI12ResultNames[resp_result]);
       } else {
         uart0_send_string("Unknown");
@@ -183,9 +185,9 @@ int main(void) {
       MeasurementResult = sdi12.get_measurement(B0_ActiveAddress, sdi12_buffer,
                                                 USDI12_BUFFER_SIZE);
       uart0_send_string("\r\n[B0] Measurement Result: ");
-      uart0_send_char(MeasurementResult + '0');  // Convert to char
       // Print English name of USDI12Result
-      if (MeasurementResult >= 0 && MeasurementResult <= 7) {
+      // Dynamically check if MeasurementResult is within bounds
+      if (MeasurementResult >= 0 && MeasurementResult < numResults) {
         uart0_send_string(USDI12ResultNames[MeasurementResult]);
       } else {
         uart0_send_string("Unknown");
@@ -201,10 +203,10 @@ int main(void) {
       uart0_send_string("\r\n[B1] Sending Identification Command...\r\n");
       sdi12_b1.send_command(B1_ActiveAddress, "I!");  // Identification command
       USDI12Result resp_result =
-          sdi12_b1.read_response(sdi12_buffer, 200, USDI12_BUFFER_SIZE);
+          sdi12_b1.read_response(sdi12_buffer, 300, USDI12_BUFFER_SIZE);
       uart0_send_string("[B1] read_response result: ");
-      if (resp_result >= 0 && resp_result <= 7) {
-        uart0_send_char(resp_result + '0');  // Convert to char
+      // Dynamically check if resp_result is within bounds
+      if (resp_result >= 0 && resp_result < numResults) {
         uart0_send_string(USDI12ResultNames[resp_result]);
       } else {
         uart0_send_string("Unknown");
@@ -222,9 +224,9 @@ int main(void) {
       MeasurementResult = sdi12_b1.get_measurement(
           B1_ActiveAddress, sdi12_buffer, USDI12_BUFFER_SIZE, 2);
       uart0_send_string("\r\n[B1] Measurement Result: ");
-      uart0_send_char(MeasurementResult + '0');  // Convert to char
       // Print English name of USDI12Result
-      if (MeasurementResult >= 0 && MeasurementResult <= 7) {
+      // Dynamically check if MeasurementResult is within bounds
+      if (MeasurementResult >= 0 && MeasurementResult < numResults) {
         uart0_send_string(USDI12ResultNames[MeasurementResult]);
       } else {
         uart0_send_string("Unknown");

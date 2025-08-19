@@ -36,6 +36,7 @@ class USDI12_HAL {
   virtual void uart_tx_pin_high() = 0;     // Force TX pin HIGH (marking)
   virtual void disable_uart_tx() = 0;      // Disable UART transmitter
   virtual void enable_uart_tx() = 0;       // Enable UART transmitter
+  virtual uint8_t uart_get_error_flags() = 0;  // Get UART error flags
 };
 
 // =============================
@@ -197,6 +198,12 @@ class AVR_HAL : public USDI12_HAL {
     disable_uart_tx();
     *_tx_ddr |= _tx_bit;   // Set as output
     *_tx_port |= _tx_bit;  // Drive HIGH
+  }
+
+  uint8_t uart_get_error_flags() {
+    // FE, DOR, UPE bits are always bits 4, 3, 2 in UCSRnA
+    // Using the _ucsrNa pointer set in the constructor
+    return (*_ucsrNa) & ((1 << 4) | (1 << 3) | (1 << 2));
   }
 
  private:

@@ -27,7 +27,8 @@
  */
 const char* USDI12ResultNames[] = {
     "Success",      "InputError",     "Timeout",     "InvalidResponse",
-    "CommandError", "BufferOverflow", "NullPointer", "Unexpected"};
+    "CommandError", "BufferOverflow", "NullPointer", "Unexpected",
+    "FrameError",   "OverrunError",   "ParityError", "UARTMultiErrors"};
 
 USDI12::USDI12(USDI12_HAL* hal, uint8_t bus) : _hal(hal), _bus(bus) {}
 
@@ -114,6 +115,19 @@ USDI12Result USDI12::read_response(char* buffer, uint32_t timeout_ms,
   int max_len = buffer_size - 1;
   while (((get_time_ms() - start_ms) < timeout_ms_margin) && (idx < max_len)) {
     if (_hal->uart_data_available()) {
+      // Check UART error flags before reading byte
+      uint8_t err_flags = _hal->uart_get_error_flags();
+      if (err_flags) {
+        if (err_flags == 0x10) {  // Check for single errors first
+          return USDI12Result_FrameError;
+        } else if (err_flags == 0x08) {
+          return USDI12Result_OverrunError;
+        } else if (err_flags == 0x04) {
+          return USDI12Result_ParityError;
+        } else {  // Any other combination means multiple errors
+          return USDI12Result_UARTMultiErrors;
+        }
+      }
       char c = (char)(_hal->uart_read_byte());
       if (got_cr && c == '\n') {
         buffer[idx] = '\0';

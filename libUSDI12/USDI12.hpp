@@ -58,13 +58,21 @@ enum USDI12Result {
   USDI12Result_CommandError,     // 4
   USDI12Result_BufferOverflow,   // 5
   USDI12Result_NullPointer,      // 6
-  USDI12Result_Unexpected        // 7
+  USDI12Result_Unexpected,       // 7
+  USDI12Result_FrameError,       // 8
+  USDI12Result_OverrunError,     // 9
+  USDI12Result_ParityError,      // 10
+  USDI12Result_UARTMultiErrors   // 11
 };
 
 /**
  * @brief Human-readable names for USDI12Result enum values.
  */
 extern const char* USDI12ResultNames[];
+/**
+ * @brief Number of USDI12Result enum values (for bounds checking)
+ */
+#define USDI12_RESULT_COUNT 12
 
 class USDI12 {
  public:
