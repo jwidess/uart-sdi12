@@ -1,11 +1,16 @@
 // clang-format off
-/*
- * USDI12_HAL.hpp
- * Hardware Abstraction Layer (HAL) for SDI-12 communication
+/**
+ * @file USDI12_HAL.hpp
+ * @author Justin Widen (justinwiden1@gmail.com)
+ * 
+ * @brief Hardware Abstraction Layer (HAL) for SDI-12 communication
  * 
  * Example Usage:
  *  AVR_HAL avr_hal(&SDI12_DIR_PORT, (1 << SDI12_DIR_PIN), UART_USDI12_NUM,
  *  &ms_tick, 1000.0f);
+ * 
+ * Currently Supported Devices:
+ * - ATmega2560
  */
 /**
  * @section mode_control_logic Mode Control Logic
@@ -74,6 +79,7 @@ class AVR_HAL : public USDI12_HAL {
     // Set UART register pointers, UDRE bit, and TX pin for each UART
     switch (uart_num) {
       case 0:
+#if defined(__AVR_ATmega2560__)
         _ucsrNa = &UCSR0A;
         _ucsrNb = &UCSR0B;
         _ucsrNc = &UCSR0C;
@@ -83,7 +89,11 @@ class AVR_HAL : public USDI12_HAL {
         _tx_port = &PORTE;  // TXD0 = PE1
         _tx_ddr = &DDRE;
         _tx_bit = (1 << PE1);
+#else
+#error "AVR_HAL currently only supports ATmega2560. Please add pin definitions for your platform."
+#endif
         break;
+#if defined(__AVR_ATmega2560__)
       case 1:
         _ucsrNa = &UCSR1A;
         _ucsrNb = &UCSR1B;
@@ -117,7 +127,9 @@ class AVR_HAL : public USDI12_HAL {
         _tx_ddr = &DDRJ;
         _tx_bit = (1 << PJ1);
         break;
+#endif
       default:  // Default to UART0
+#if defined(__AVR_ATmega2560__)
         _ucsrNa = &UCSR0A;
         _ucsrNb = &UCSR0B;
         _ucsrNc = &UCSR0C;
@@ -127,8 +139,11 @@ class AVR_HAL : public USDI12_HAL {
         _tx_port = &PORTE;
         _tx_ddr = &DDRE;
         _tx_bit = (1 << PE1);
+#else
+#error "AVR_HAL currently only supports ATmega2560. Please add pin definitions for your platform."
+#endif
         break;
-    }
+    } // END: switch (uart_num)
   }
 
   // Set direction pin for bus selection
