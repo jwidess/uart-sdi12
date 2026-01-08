@@ -32,10 +32,7 @@ const char* USDI12ResultNames[] = {
 
 USDI12::USDI12(USDI12_HAL* hal, uint8_t bus) : _hal(hal), _bus(bus) {}
 
-/**
- * @brief Waits for the SDI-12 bus to become idle for up to timeout_ms
- * milliseconds. Returns true if bus is idle, false if timeout occurs.
- */
+// Implementation: see `USDI12.hpp` for documentation.
 USDI12Result USDI12::wait_bus_idle(uint32_t timeout_ms) {
   uint32_t start_ms = get_time_ms();
   uint32_t last_rx_ms = get_time_ms();
@@ -153,18 +150,7 @@ USDI12Result USDI12::read_response(char* buffer, uint32_t timeout_ms,
   return USDI12Result_Timeout;  // Timeout
 }  // END: read_response
 
-/**
- * @brief Initiates a measurement and retrieves all measurement values from the
- * SDI-12 sensor.
- * @example get_measurement('0', buffer, sizeof(buffer), 2);
- * @param address SDI-12 address (0-9)
- * @param measurement_number Optional measurement number (0-9), default is 0
- * (standard M command)
- * @param result_buffer Buffer to store the concatenated measurement values
- * (null-terminated)
- * @param buffer_size Size of the result_buffer
- * @return true if all expected values were received, false otherwise
- */
+// Implementation: see `USDI12.hpp` for documentation.
 USDI12Result USDI12::get_measurement(uint8_t address, char* result_buffer,
                                      uint16_t buffer_size,
                                      int8_t measurement_number) {

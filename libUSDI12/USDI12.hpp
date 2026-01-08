@@ -25,7 +25,6 @@
 #ifndef USDI12_H
 #define USDI12_H
 
-#include <avr/io.h>
 #include <stdio.h>   // For snprintf, sscanf
 #include <string.h>  // For strncat, strncpy
 
@@ -48,7 +47,9 @@
 /**
  * @brief Result codes for SDI-12 operations.
  * 0=Success, 1=InputError, 2=Timeout, 3=InvalidResponse, 4=CommandError,
- * 5=BufferOverflow, 6=NullPointer, 7=Unexpected
+ * 5=BufferOverflow, 6=NullPointer, 7=Unexpected, 8=FrameError, 9=OverrunError,
+ * 10=ParityError, 11=UARTMultiErrors
+ * @param n/a
  */
 enum USDI12Result {
   USDI12Result_Success = 0,
@@ -103,16 +104,15 @@ class USDI12 {
    * This function waits for a response from the SDI-12 sensor, reading
    * characters into the provided buffer until a CRLF sequence is received, the
    * buffer is full, or the timeout expires.
-   *
    * @param buffer Pointer to the character array to store the response
    * (null-terminated).
    * @param timeout_ms Timeout in milliseconds to wait for a response.
    * @param buffer_size Size of the response buffer (including null terminator).
    * @return USDI12Result enum indicating result or error type:
-   *         - USDI12Result_Success: valid response received
-   *         - USDI12Result_Timeout: timeout occurred
-   *         - USDI12Result_BufferOverflow: buffer full before CRLF
-   *         - USDI12Result_NullPointer: buffer is null or size is zero
+   * - USDI12Result_Success: valid response received
+   * - USDI12Result_Timeout: timeout occurred
+   * - USDI12Result_BufferOverflow: buffer full before CRLF
+   * - USDI12Result_NullPointer: buffer is null or size is zero
    */
   USDI12Result read_response(char* buffer, uint32_t timeout_ms,
                              uint16_t buffer_size);
@@ -135,10 +135,12 @@ class USDI12 {
                                int8_t measurement_number = -1);
 
   /**
-   * @brief Waits for the SDI-12 bus to become idle (no data available) for up
-   * to timeout_ms milliseconds. Returns true if bus is idle, false if timeout
-   * occurs.
-   * @param timeout_ms DEFAULT = 100ms - Maximum time to wait for bus idle (ms)
+   * @brief Waits for the SDI-12 bus to become idle (no RX data) for up to
+   * timeout_ms milliseconds. The bus is considered idle when no data has been
+   * received for at least USDI12_BUS_IDLE_THRESHOLD_MS.
+   * @param timeout_ms Maximum time to wait for bus idle (ms) (default = 100)
+   * @return USDI12Result_Success if bus became idle within timeout,
+   * USDI12Result_Timeout if timeout occurred.
    */
   USDI12Result wait_bus_idle(uint32_t timeout_ms = 100);
 
