@@ -6,14 +6,14 @@ This library provides SDI-12 protocol support using a hardware UART port and min
 
 ## Features
 - SDI-12 protocol over UART
-- Multi-bus support (controlled via a single direction pin)
+- Multi-bus support (controlled via a single direction (DIR) pin)
 - Hardware Abstraction Layer (HAL) for portability
 - Error handling with `USDI12Result` enum
 - UART error detection (frame, overrun, parity, multi-error)
 - Example test program for Arduino Mega/AVR
 
 ## Hardware
-This library supports dual SDI-12 busses, however it is not required to utilize both. This functionality was added due to the fact the SDI-12 specification does **NOT** require sensors to support changing of their address. Thus if you where to ever need to use two identical sensors (that can't change addresses) on one device, you must use two buses. Alongside this, the AVR platform doesn't support UART inversion, thus physical inversion of the protocol is needed before TX and RX.
+This library supports dual SDI-12 busses, however it is not required to utilize both. This functionality was added due to the fact the SDI-12 specification does **NOT** require sensors to support changing of their address. Thus if you where to ever need to use two identical sensors (that can't change addresses) on one device, you must use two buses. Alongside this, the AVR platform doesn't support UART inversion, thus physical inversion of the protocol is needed for TX and RX.
 
 With this setup, it is required that a direction pin is configured to swap which bus is connected to RX and TX respectively. With the hardware setup described below the following truth table shows the connections of RX and TX with respect to the Direction pin. With the class nature of this library, the following truth table can be ignored as `set_tx` and `set_rx` handle this logic depending on bus number.
 
@@ -25,7 +25,7 @@ With this setup, it is required that a direction pin is configured to swap which
 ### 2 Component Hardware Design
 This design uses only two ICs to provide both protocol inversion and dual-bus switching. It utilizes a **74AHCT125** Quad Bus Buffer Gates (tri-state) alongside a **74HCT04** hex inverter. Below is an example schematic
 
-![2 Component Hardware Design Example KiCad Schematic](https://github.com/jwidess/uart-sdi12/blob/main/2_Comp_HW_Design_Sch.png?raw=true)
+![2 Component Hardware Design Example KiCad Schematic](/2_Comp_HW_Design_Sch.png)
 
 > [!NOTE]  
 > A simpler version of this circuit could be made using the **SN74LVC2G241** as it incorporates both inverted and non inverted tri-states.
@@ -87,7 +87,7 @@ enum USDI12Result {
 
 volatile uint32_t ms_tick = 0;
 AVR_HAL avr_hal(&SDI12_DIR_PORT, (1 << SDI12_DIR_PIN), UART_USDI12_NUM, &ms_tick, 1000.0f);
-USDI12 sdi12_b0(&avr_hal, 0);     // Bus 0
+USDI12 sdi12_b0(&avr_hal, 0);  // Bus 0
 USDI12 sdi12_b1(&avr_hal, 1);  // Bus 1
 
 sdi12_b0.begin_uart(F_CPU);
@@ -119,6 +119,22 @@ if (meas_result == USDI12Result_Success) {
 }
 ```
 
+## Example: config.h
+```cpp
+#ifndef CONFIG_H
+#define CONFIG_H
+// MCU Configuration
+#define F_CPU 16000000UL // 16MHz
+// UART Configuration
+#define UART_USDI12_NUM 2  // Use UART2 for SDI-12
+// Pin Definitions
+// Direction control pin
+#define SDI12_DIR_PORT PORTH
+#define SDI12_DIR_PIN PH4
+
+#endif  // CONFIG_H
+```
+
 ## Error Handling Example
 ```cpp
 if (result >= 0 && result < USDI12_RESULT_COUNT) {
@@ -142,5 +158,13 @@ USDI12 sdi12(&avr_hal, 0);
 ```
 
 ## Notes
-- Currently nly supports the AVR platfrom, no other HALs created yet.
-- See `main.cpp` for a full test/demo program
+- Currently supports the AVR platform, no other HALs created yet.
+- See `\UART-SDI12-LibraryTest-V1\UART-SDI12-LibraryTest-V1\main.cpp` for a full test/demo program
+
+
+## Credits
+
+- **https://github.com/EnviroDIY/Arduino-SDI-12**
+  - The EnviroDIY Arduino-SDI-12 library was very helpful for testing SDI-12 communication, and also inspired some of the program structure in this library. Thank you to all of the amazing devs that created that library!
+- **Jolon Behrent, "Development of an IoT System for Environmental Monitoring", https://jolonb.github.io/assets/pdf/final_report.pdf**
+  - Thanks to Jolon Behrent for his SDI-12 hardware implementation as it was the primary inspiration for my design.
