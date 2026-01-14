@@ -12,6 +12,19 @@ This library provides SDI-12 protocol support using a hardware UART port and min
 - UART error detection (frame, overrun, parity, multi-error)
 - Example test program for Arduino Mega/AVR
 
+## Supported SDI-12 Commands
+The project provides specific high-level support for the following SDI-12 sequences:
+- **Start Measurement (`aM!`, `aMn!`)**: Fully implemented via `get_measurement()`. This handles the command transmission, waiting for the sensor service request (or timeout), and subsequent data collection.
+- **Send Data (`aD0!` ... `aD9!`)**: Utilized by `get_measurement()` to retrieve all available data values.
+
+All other SDI-12 commands (e.g., `?!`, `aI!`, `aAb!`, `aV!`) can be utilized via `send_command()` and `read_response()` methods. However, high level implementation has not yet been created for these. More info in the following Limitations section.
+
+## Limitations
+While the project supports the core SDI-12 protocol, the following features are not currently implemented in the high-level API:
+- **CRC Verification:** Commands requesting CRC (e.g., `aMC!`, `aCC!`) are not explicitly supported. While you can send these commands manually, the library does not validate the checksum in the response.
+- **Concurrent Measurements (`aC!`):** There is no dedicated non-blocking helper for concurrent measurements. The `get_measurement()` function is designed for standard measurements and blocks until the measurement is complete.
+- **Continuous Measurements (`aR!`):** No method for continuous measurements.
+
 ## Hardware
 This library supports dual SDI-12 busses, however it is not required to utilize both. This functionality was added due to the fact the SDI-12 specification does **NOT** require sensors to support changing of their address. Thus if you where to ever need to use two identical sensors (that can't change addresses) on one device, you must use two buses. Alongside this, the AVR platform doesn't support UART inversion, thus physical inversion of the protocol is needed for TX and RX.
 
