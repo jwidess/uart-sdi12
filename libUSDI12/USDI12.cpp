@@ -214,6 +214,9 @@ USDI12Result USDI12::get_measurement(uint8_t address, char* result_buffer,
   char values[USDI12_BUFFER_SIZE * 2] = {0};
   uint8_t values_received = 0;
   for (uint8_t d = 0; values_received < num_values && d < 10; ++d) {
+    if (d > 0) {
+      _hal->delay_ms(9);
+    }
     char d_cmd[6] = {0};
     snprintf(d_cmd, sizeof(d_cmd), "%cD%u!", address, d);
     USDI12Result dcmd_result =
