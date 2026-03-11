@@ -21,6 +21,8 @@
 
 // Threshold time without RX data to consider bus idle (8.33ms + tolerance)
 #define USDI12_BUS_IDLE_THRESHOLD_MS 11
+// SDI-12 mark period: To avoid issues, mark for 1 bit period (8.33ms)
+#define USDI12_MARK_PERIOD_MS 9
 
 /**
  * @brief Human-readable names for USDI12Result enum values.
@@ -202,12 +204,12 @@ USDI12Result USDI12::get_measurement(uint8_t address, char* result_buffer,
         read_response(service_req, wait_ms, sizeof(service_req));
 
     if (got_service == USDI12Result_Success) {
-      _hal->delay_ms(9);  // If service request, mark for 9ms to avoid problems
+      _hal->delay_ms(USDI12_MARK_PERIOD_MS);
     } else {
       send_break_mark();  // If no service request (timeout), send break mark
     }
   } else if (ttt == 0) {  // No delay, data is immediately available
-    _hal->delay_ms(9);    // Mark for 9ms to avoid problems
+    _hal->delay_ms(USDI12_MARK_PERIOD_MS);
   }
 
   // Send nDn! and read values
@@ -215,7 +217,7 @@ USDI12Result USDI12::get_measurement(uint8_t address, char* result_buffer,
   uint8_t values_received = 0;
   for (uint8_t d = 0; values_received < num_values && d < 10; ++d) {
     if (d > 0) {
-      _hal->delay_ms(9);
+      _hal->delay_ms(USDI12_MARK_PERIOD_MS);
     }
     char d_cmd[6] = {0};
     snprintf(d_cmd, sizeof(d_cmd), "%cD%u!", address, d);
