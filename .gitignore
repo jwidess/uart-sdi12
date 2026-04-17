@@ -7,5 +7,4 @@
 *.srec
 *.atsuo
 .atsuo
-/UART-SDI12-LibraryTest-V1/UART-SDI12-LibraryTest-V1/Debug
-/Microchip Studio Testing Programs/Dump_UART_Info/Dump_UART_Info/Dump_UART_Info/Debug
+Debug/
