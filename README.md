@@ -1,6 +1,9 @@
 # uart-sdi12
 A C++ Library for SDI-12 Communication via a hardware UART implementation.
 
+[![License: LGPL v3](https://img.shields.io/badge/License-LGPL_v3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)
+
+
 ## Overview
 This library provides SDI-12 protocol support using a hardware UART port and minimal external parts. It comes with multi-bus support, error handling, and hardware abstraction for AVR microcontrollers.
 
@@ -182,3 +185,7 @@ USDI12 sdi12(&avr_hal, 0);
   - The EnviroDIY Arduino-SDI-12 library was very helpful for testing SDI-12 communication, and also inspired some of the program structure in this library. Thank you to all of the amazing devs that created that library!
 - **Jolon Behrent, "Development of an IoT System for Environmental Monitoring", https://jolonb.github.io/assets/pdf/final_report.pdf**
   - Thanks to Jolon Behrent for his SDI-12 hardware implementation as it was the primary inspiration for my design.
+
+## License
+
+The software is released under the GNU Lesser General Public License v3.0 (LGPL-3.0). See [LICENSE](LICENSE) for more details.
