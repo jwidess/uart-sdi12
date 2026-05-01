@@ -25,6 +25,13 @@
 #ifndef USDI12_H
 #define USDI12_H
 
+// These version macro placeholders are updated by the GitHub Action 
+// release-please workflow when a new release is created.
+#define USDI12_VERSION_MAJOR 0
+#define USDI12_VERSION_MINOR 0
+#define USDI12_VERSION_PATCH 0
+#define USDI12_VERSION_STRING "0.0.0"
+
 #include <stdio.h>   // For snprintf, sscanf
 #include <string.h>  // For strncat, strncpy
 
