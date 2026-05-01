@@ -1,0 +1,35 @@
+{
+    "packages": {
+        ".": {
+            "release-type": "simple",
+            "bump-minor-pre-major": true,
+            "initial-version": "0.1.0",
+            "extra-files": [
+                {
+                    "type": "generic",
+                    "path": "USDI12/include/USDI12.hpp",
+                    "search-value": "#define USDI12_VERSION_MAJOR \\d+",
+                    "replace-value": "#define USDI12_VERSION_MAJOR $major"
+                },
+                {
+                    "type": "generic",
+                    "path": "USDI12/include/USDI12.hpp",
+                    "search-value": "#define USDI12_VERSION_MINOR \\d+",
+                    "replace-value": "#define USDI12_VERSION_MINOR $minor"
+                },
+                {
+                    "type": "generic",
+                    "path": "USDI12/include/USDI12.hpp",
+                    "search-value": "#define USDI12_VERSION_PATCH \\d+",
+                    "replace-value": "#define USDI12_VERSION_PATCH $patch"
+                },
+                {
+                    "type": "generic",
+                    "path": "USDI12/include/USDI12.hpp",
+                    "search-value": "#define USDI12_VERSION_STRING \"[0-9]+\\.[0-9]+\\.[0-9]+\"",
+                    "replace-value": "#define USDI12_VERSION_STRING \"$version\""
+                }
+            ]
+        }
+    }
+}
