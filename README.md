@@ -175,7 +175,7 @@ USDI12 sdi12(&avr_hal, 0);
 
 ## Notes
 - Currently supports the AVR platform, no other HALs created yet.
-- See `\UART-SDI12-LibraryTest-V1\UART-SDI12-LibraryTest-V1\main.cpp` for a full test/demo program
+- See `Microchip Studio Testing Programs/UART-SDI12-LibraryTest-V1/UART-SDI12-LibraryTest-V1/main.cpp` for a full test/demo program
 - For info on how to add external files/"libraries", like this project, to a Microchip Studio project, see [Microchip Studio Notes](<Microchip Studio Testing Programs/MicrochipStudioNotes.md>).
 
 
