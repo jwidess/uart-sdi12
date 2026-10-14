@@ -160,6 +160,13 @@ class AVR_HAL : public USDI12_HAL {
     uint16_t ubrr = (cpuFreq / 16 / 1200) - 1;
     if (ubrr > 4095) return false;
     *_ubrrN = ubrr;  // Set baud rate
+
+    // Set port latch high first as fallback so if USART is ever disabled
+    // we don't continuously drive the bus high on accident.
+    *_tx_port |= _tx_bit;
+    // Set pin as output
+    *_tx_ddr  |= _tx_bit;
+
     // Enable receiver and transmitter
     *_ucsrNb = (1 << 4) | (1 << 3);  // RXENn = 4, TXENn = 3
     // Set frame format: 7 data bits, even parity, 1 stop bit
